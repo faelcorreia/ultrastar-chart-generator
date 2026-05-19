@@ -13,8 +13,8 @@ MIDI_FALLBACK = 60  # Middle C — used when no valid pitch is detected
 
 
 class UltraStarFormatter:
-    def __init__(self, inputs: dict):
-        self.inputs = inputs
+    def __init__(self, songs: dict):
+        self.songs = songs
 
     def _seconds_to_beat(self, seconds: float, bpm: float, gap_s: float = 0.0) -> int:
         return round((seconds - gap_s) * bpm * 4 / 60)
@@ -189,7 +189,7 @@ class UltraStarFormatter:
 
     def format_ultrastar_song_folder(self, artist_song: str):
         base_directory = os.path.join(config.OUTPUT_DIR, artist_song)
-        song = self.inputs[artist_song]
+        song = self.songs[artist_song]
         os.makedirs(base_directory, exist_ok=True)
 
         # Copy audio and image files
@@ -197,8 +197,8 @@ class UltraStarFormatter:
         shutil.copy(song["full_track"], os.path.join(
             base_directory, new_full_track_file))
 
-        new_instrumental_file = f"{artist_song} [INSTR]{Path(song['no_vocals']).suffix}"
-        shutil.copy(song["no_vocals"], os.path.join(
+        new_instrumental_file = f"{artist_song} [INSTR]{Path(song['instrumental']).suffix}"
+        shutil.copy(song["instrumental"], os.path.join(
             base_directory, new_instrumental_file))
 
         new_vocals_file = f"{artist_song} [VOC]{Path(song['vocals']).suffix}"
@@ -274,3 +274,9 @@ class UltraStarFormatter:
 
         with open(ultrastar_file, "w") as f:
             f.write("\n".join(file_lines))
+
+        song["beats"].unlink()
+        song["instrumental"].unlink()
+        song["pitches"].unlink()
+        song["vocals"].unlink()
+        song["words"].unlink()

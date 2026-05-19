@@ -1,10 +1,16 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir librosa torch torchaudio demucs faster-whisper --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-RUN pip freeze
+WORKDIR /app
+COPY ./requirements.txt /app/
 
-COPY ./docker /app
+RUN pip install -r requirements.txt \
+                --no-cache-dir \
+                --index-url https://download.pytorch.org/whl/cpu \
+                --extra-index-url https://pypi.org/simple
 
-WORKDIR /workspace
+COPY ./app.py /app/
+COPY ./src/ /app/src/
+
+ENTRYPOINT [ "python3", "/app/app.py" ]
