@@ -1,34 +1,29 @@
 import shutil
-from src.core.docker_manager import DockerManager
+from src.core.audio_processor import AudioProcessor
 from pathlib import Path
+import demucs.separate
 
 
-class VocalsSeparator(DockerManager):
+class VocalsSeparator(AudioProcessor):
 
     def __init__(
         self,
-        inputs: dict,
+        songs: dict,
         model_name: str = "htdemucs",
     ):
-        super().__init__()
-        self.inputs = inputs
+        super().__init__(songs)
         self.model_name = model_name
 
     def separate_vocals(self, artist_song: str) -> None:
-        audio_input = self.inputs[artist_song]["full_track"]
+        audio_input = self.songs[artist_song]["full_track"]
 
-        args = [
-            "demucs",
+        demucs.separate.main([
             "--two-stems=vocals",
             "--mp3",
-            "-n",
-            self.model_name,
-            "-o",
-            "/data/output",
-            f"/data/input/{Path(audio_input).name}",
-        ]
-
-        self.run_container(args)
+            "-n", self.model_name,
+            "-o", str(self.output_dir),
+            str(audio_input)
+        ])
 
         model_folder = self.output_dir / self.model_name
         song_folder = model_folder / Path(audio_input).stem
@@ -37,14 +32,14 @@ class VocalsSeparator(DockerManager):
 
         vocals_destination = self.output_dir / f"{artist_song} - vocals.mp3"
         instrumental_destination = self.output_dir / \
-            f"{artist_song} - no vocals.mp3"
+            f"{artist_song} - instrumental.mp3"
 
         vocals_source.move(vocals_destination)
         instrumental_source.move(instrumental_destination)
 
         shutil.rmtree(model_folder)
 
-        self.inputs[artist_song].update({
-            "no vocals": instrumental_destination,
+        self.songs[artist_song].update({
+            "instrumental": instrumental_destination,
             "vocals": vocals_destination
         })

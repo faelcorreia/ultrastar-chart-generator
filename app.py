@@ -6,6 +6,23 @@ from src.core.beats_analyzer import BeatsAnalyzer
 from src.core.pitches_analyzer import PitchesAnalyzer
 from pathlib import Path
 
+
+def get_test_data(artist_song, songs):
+    songs[artist_song]["instrumental"] = config.OUTPUT_DIR / \
+        f"{artist_song} - instrumental.mp3"
+    songs[artist_song]["vocals"] = config.OUTPUT_DIR / \
+        f"{artist_song} - vocals.mp3"
+
+    songs[artist_song]["pitches"] = config.OUTPUT_DIR / \
+        f"{artist_song} - pitches.json"
+
+    songs[artist_song]["beats"] = config.OUTPUT_DIR / \
+        f"{artist_song} - beats.json"
+
+    songs[artist_song]["words"] = config.OUTPUT_DIR / \
+        f"{artist_song} - words.json"
+
+
 if __name__ == "__main__":
     songs = {}
     input_dir = Path(config.INPUT_DIR)
@@ -35,7 +52,7 @@ if __name__ == "__main__":
 
     if len(songs) > 0:
         vocals = VocalsSeparator(songs)
-        pitch = PitchesAnalyzer(songs)
+        pitches = PitchesAnalyzer(songs)
         beats = BeatsAnalyzer(songs)
         words = WordsTranscriber(songs)
         ultrastar = UltraStarFormatter(songs)
@@ -43,28 +60,18 @@ if __name__ == "__main__":
             print(f"Analyzing {artist_song}")
 
             print(f"=> Running Demucs to extract vocals")
-            # demucs.separate_vocals(artist_song=artist_song)
-            songs[artist_song]["no_vocals"] = config.OUTPUT_DIR / \
-                f"{artist_song} - no vocals.mp3"
-            songs[artist_song]["vocals"] = config.OUTPUT_DIR / \
-                f"{artist_song} - vocals.mp3"
+            vocals.separate_vocals(artist_song=artist_song)
 
             print(f"=> Running Librosa to extract vocals pitches")
-            # pitch.analyze_pitch(artist_song=artist_song)
-            songs[artist_song]["pitches"] = config.OUTPUT_DIR / \
-                f"{artist_song} - pitches.json"
+            pitches.analyze_pitches(artist_song=artist_song)
 
             print(f"=> Running Librosa to extract BPM")
-            # beats.analyze_beats(artist_song=artist_song)
-            songs[artist_song]["beats"] = config.OUTPUT_DIR / \
-                f"{artist_song} - beats.json"
+            beats.analyze_beats(artist_song=artist_song)
 
             print(
                 f"=> Running Faster Whisper to timestamp lyrics")
-            # words.transcribe_vocals(
-            #    artist_song=artist_song)
-            songs[artist_song]["words"] = config.OUTPUT_DIR / \
-                f"{artist_song} - words.json"
+            words.transcribe_vocals(
+                artist_song=artist_song)
 
             print(f"=> Creating UltraStar song folder")
             ultrastar.format_ultrastar_song_folder(artist_song=artist_song)
