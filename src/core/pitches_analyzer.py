@@ -1,5 +1,6 @@
 from src.core.audio_processor import AudioProcessor
 import json
+import math
 import librosa
 
 
@@ -42,10 +43,18 @@ class PitchesAnalyzer(AudioProcessor):
             float(i * hop_length) / sample_rate for i in range(len(frequencies))
         ]
 
+        # Per-frame confidence (0.0 when no pitch was detected). The formatter
+        # uses this to discard noisy/transitional frames.
+        voiced_probability = [
+            float(p) if p is not None and not math.isnan(float(p)) else 0.0
+            for p in voiced_prob
+        ]
+
         result_data = {
             "times": times,
             "frequencies": frequencies,
             "midi_notes": midi_notes,
+            "voiced_prob": voiced_probability,
         }
 
         with open(output_json_path, "w", encoding="utf-8") as fh:
