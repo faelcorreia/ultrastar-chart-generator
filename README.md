@@ -1,4 +1,4 @@
-# Song2UltraStar 🎤
+# UltraStar Chart Generator
 
 Convert a song into a ready-to-use [UltraStar](https://usdx.eu/) file — fully
 automated, from audio to synchronized lyrics with pitch detection.
@@ -10,8 +10,8 @@ automated, from audio to synchronized lyrics with pitch detection.
 
 ## How It Works
 
-Song2UltraStar takes a raw song and runs it through a pipeline of audio
-analysis tools:
+UltraStar Chart Generator takes a raw song and runs it through a pipeline of
+audio analysis tools:
 
 1. **[Demucs](https://github.com/facebookresearch/demucs)** — separates the
    vocals from the full track.
@@ -109,7 +109,7 @@ python app.py
 
 ### Docker
 
-To run Song2UltraStar in a Docker container:
+To run UltraStar Chart Generator in a Docker container:
 
 ```bash
 bash docker.sh
@@ -201,7 +201,7 @@ python -m unittest discover -s tests -v
 ## Project Structure
 
 ```
-Song2UltraStar/
+ultrastar-chart-generator/
 ├── app.py          # Main entry point and input file discovery
 ├── prepare.sh      # Local dependency/model installer
 ├── docker.sh       # Docker runner
