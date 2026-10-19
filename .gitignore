@@ -223,3 +223,6 @@ input/*
 !input/.gitkeep
 output/*
 !output/.gitkeep
+
+# Local environment (use .env.example as a template)
+.env

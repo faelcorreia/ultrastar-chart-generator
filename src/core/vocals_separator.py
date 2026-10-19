@@ -34,8 +34,8 @@ class VocalsSeparator(AudioProcessor):
         instrumental_destination = self.output_dir / \
             f"{artist_song} - instrumental.mp3"
 
-        vocals_source.move(vocals_destination)
-        instrumental_source.move(instrumental_destination)
+        shutil.move(vocals_source, vocals_destination)
+        shutil.move(instrumental_source, instrumental_destination)
 
         shutil.rmtree(model_folder)
 
