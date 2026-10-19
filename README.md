@@ -136,6 +136,14 @@ instrumental and vocal stems, the cover, and an UltraStar `.txt` file with:
   kept in the chart
 - Line breaks (`-`) at the end of each lyric line
 
+By default the original vocals are audible: players start with the full mix
+(`#AUDIO`), which contains the voice. The `#INSTRUMENTAL` and `#VOCALS` stems
+are what let the player remove or balance it at playback time. In UltraStar
+Deluxe, press `K` during a song to toggle karaoke (crossfade to the
+instrumental), or set *Sound → Vocals volume* (default 100%) in the options.
+Other players expose the same control as a vocals mute or playback-audio
+setting.
+
 The `#BPM` value is intentionally scaled by a power of two (usually ×2 or ×4)
 so the integer beat grid is fine enough (~30–60 ms) for karaoke timing. The
 timing is unchanged; only the resolution of the beat positions improves.
