@@ -1,12 +1,16 @@
+import json
 import os
 import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
 os.environ.setdefault("INPUT_DIR", tempfile.gettempdir())
 os.environ.setdefault("OUTPUT_DIR", tempfile.gettempdir())
 
+import src.core.config as config  # noqa: E402
 from src.core.ultrastar_formatter import UltraStarFormatter  # noqa: E402
 
 
@@ -240,6 +244,71 @@ class FormatNumberTest(unittest.TestCase):
     def test_removes_trailing_zeros(self):
         self.assertEqual(UltraStarFormatter._format_number(590.625), "590.625")
         self.assertEqual(UltraStarFormatter._format_number(14.520000), "14.52")
+
+
+class SongFolderOutputTest(unittest.TestCase):
+    def test_writes_separated_vocals_track(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            song_name = "Artist - Song"
+
+            sources = {
+                "full_track": root / "full.mp3",
+                "instrumental": root / "instrumental.mp3",
+                "vocals": root / "vocals.mp3",
+                "cover": root / "cover.jpg",
+            }
+            for path in sources.values():
+                path.write_bytes(b"data:" + path.stem.encode())
+
+            syllables = root / "syllables.json"
+            syllables.write_text(json.dumps([{
+                "syllable": "la",
+                "start": 0.5,
+                "end": 0.9,
+                "line_break": True,
+                "first_syllable": True,
+            }]), encoding="utf-8")
+
+            pitches = root / "pitches.json"
+            pitches.write_text(json.dumps({
+                "times": [0.5, 0.6, 0.7, 0.8],
+                "midi_notes": [60.0, 60.0, 60.0, 60.0],
+            }), encoding="utf-8")
+
+            beats = root / "beats.json"
+            beats.write_text(json.dumps({"bpm": 120}), encoding="utf-8")
+
+            song = {
+                **sources,
+                "artist": "Artist",
+                "title": "Song",
+                "syllables": syllables,
+                "pitches": pitches,
+                "beats": beats,
+            }
+
+            output_dir = root / "output"
+            formatter = UltraStarFormatter({song_name: song})
+            # ffmpeg is only responsible for the full-track transcode here.
+            with mock.patch.object(config, "OUTPUT_DIR", output_dir), \
+                    mock.patch("src.core.ultrastar_formatter.subprocess.run"):
+                formatter.format_ultrastar_song_folder(song_name)
+
+            song_dir = output_dir / song_name
+            chart = (song_dir / f"{song_name}.txt").read_text(
+                encoding="utf-8"
+            ).splitlines()
+
+            vocals_file = song_dir / f"{song_name} [VOC].mp3"
+            instrumental_file = song_dir / f"{song_name} [INSTR].mp3"
+            self.assertTrue(vocals_file.is_file())
+            self.assertTrue(instrumental_file.is_file())
+            self.assertEqual(
+                vocals_file.read_bytes(), sources["vocals"].read_bytes()
+            )
+            self.assertIn(f"#VOCALS:{vocals_file.name}", chart)
+            self.assertIn(f"#INSTRUMENTAL:{instrumental_file.name}", chart)
 
 
 if __name__ == "__main__":
