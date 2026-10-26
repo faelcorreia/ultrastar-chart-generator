@@ -96,7 +96,7 @@ Decisão (E1): só letra e sem áudio vai para a fila "aguardando áudio": guard
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| F1 | CLI de lote: lista `artista;título;ano`, localiza o áudio, processa em fila | E1 | Refinado |
+| F1 | CLI de lote: lista `artista;título;ano`, localiza o áudio, processa em fila | E1 | Feito (24535d9) |
 | F2 | Relatório do lote (entrou, falhou, por quê) e retomada | F1 | Refinado |
 
 Decisão (F2): relatório e estado de retomada em JSON (entrou, falhou, revisar, aguardando áudio, com motivo por música).
