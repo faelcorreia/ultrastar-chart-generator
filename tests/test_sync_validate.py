@@ -45,6 +45,14 @@ def run(lang, src, w=TRUE, c=TRUE):
 
 
 class SyncValidateTest(unittest.TestCase):
+    def test_single_anchor_does_not_shift_whole_song(self):
+        for lang in SONGS:
+            none = [None] * 6
+            w = [TRUE[0] - 6.0] + none[1:]
+            r = run(lang, TRUE, w=w, c=w)
+            self.assertNotIn(r.correction.kind, (OFFSET, DRIFT))
+            self.assertEqual([l.start for l in r.lyrics.lines][1:], TRUE[1:])
+
     def test_all_ok(self):
         for lang in SONGS:
             r = run(lang, [t + 0.3 for t in TRUE])

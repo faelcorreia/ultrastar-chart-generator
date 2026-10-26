@@ -29,6 +29,10 @@ from src.model.lyrics import Line, Lyrics, Syllable
 from src.stages.word_alignment import normalize_language
 
 TOLERANCE = 0.5
+# A global offset/drift needs several agreeing anchors; one or two noisy
+# lines must not shift the whole song (found in the I4 real runs).
+MIN_GLOBAL_ANCHORS = 3
+MIN_GLOBAL_MATCH = 0.5
 OK, SHIFTED, UNCERTAIN = "ok", "shifted", "uncertain"
 NONE, OFFSET, DRIFT, LINES = "none", "offset", "drift", "lines"
 
@@ -191,7 +195,9 @@ def validate_sync(
         for corr, fn in cands:
             corr.match_before = before
             corr.match_after = _match(anchors, fn)
-            if corr.match_after > best.match_after + 1e-9:
+            if (len(anchors) >= MIN_GLOBAL_ANCHORS
+                    and corr.match_after >= MIN_GLOBAL_MATCH
+                    and corr.match_after > best.match_after + 1e-9):
                 best, best_fn = corr, fn
         bad = [i for i, c in enumerate(checks) if c.status == SHIFTED]
         if bad:

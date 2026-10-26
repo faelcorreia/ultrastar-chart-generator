@@ -52,6 +52,12 @@ def align_words(
         " ".join(words), romanize=True, language=_iso3(language),
         split_size="word", star_frequency="segment",
     )
+    # The native aligner aborts the whole process (std::bad_alloc) when
+    # there are more tokens than emission frames, e.g. a tiny window.
+    if len(tokens_starred) > len(emissions):
+        raise RuntimeError(
+            f"audio too short for the text ({len(emissions)} frames, "
+            f"{len(tokens_starred)} tokens)")
     segments, scores, blank = get_alignments(
         emissions, tokens_starred, tokenizer
     )
