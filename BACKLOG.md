@@ -97,7 +97,7 @@ Decisão (E1): só letra e sem áudio vai para a fila "aguardando áudio": guard
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
 | F1 | CLI de lote: lista `artista;título;ano`, localiza o áudio, processa em fila | E1 | Feito (24535d9) |
-| F2 | Relatório do lote (entrou, falhou, por quê) e retomada | F1 | Refinado |
+| F2 | Relatório do lote (entrou, falhou, por quê) e retomada | F1 | Feito (c3a1b92) |
 
 Decisão (F2): relatório e estado de retomada em JSON (entrou, falhou, revisar, aguardando áudio, com motivo por música).
 
@@ -117,3 +117,16 @@ Decisões (G): G1 usa a melodia do MIDI quando existir, senão pitch tracking; G
 ## Épico H: Fontes e download
 
 Fora do código por enquanto. Discussão com o Rafael sobre onde obter KAR/CDG/áudio e o que é legítimo automatizar. A sessão Produtividade entrega a lista (formato a definir). Sem fatias até a decisão.
+
+## Épico I: Integração (proposta, A refinar)
+
+Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a ponta.
+
+| ID | Fatia | Depende | Status |
+|---|---|---|---|
+| I1 | Ligar ao planner os estágios reais vocals, pitches, beats, syllables e write (hoje atrás da API de dicionários do `legacy.py`) | E1 | A refinar |
+| I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | A refinar |
+| I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha) | I1 | A refinar |
+| I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | A refinar |
+
+Perguntas abertas: ordem das fatias; I3 deve cair no Whisper sozinho ou marcar "revisar"?
