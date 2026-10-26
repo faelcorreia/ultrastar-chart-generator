@@ -3,7 +3,7 @@ set -e
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
 
-conda create -n audio-processor python=3.10 -y
+conda create -n audio-processor python=3.13 -y
 conda activate audio-processor
 conda install -c conda-forge montreal-forced-aligner -y
 

@@ -1,4 +1,5 @@
 import re
+import sys
 from pathlib import Path
 
 import src.core.config as config
@@ -107,6 +108,14 @@ def _main() -> int:
         return 1
 
     songs = _collect_songs(input_dir)
+    # Optional arguments restrict the run to the named "Artist - Title" songs.
+    wanted = sys.argv[1:]
+    if wanted:
+        unknown = [name for name in wanted if name not in songs]
+        if unknown:
+            print(f"[ERROR] Not found in {input_dir}: {', '.join(unknown)}")
+            return 1
+        songs = {name: songs[name] for name in wanted}
     if not songs:
         print(
             f"[ERROR] No complete songs found in {input_dir}. Expected files "

@@ -9,6 +9,7 @@ cffi==2.0.0
 charset-normalizer==3.4.7
 click==8.4.0
 cloudpickle==3.1.2
+ctc_forced_aligner==1.0.2
 ctranslate2==4.7.2
 decorator==5.3.1
 demucs==4.0.1
@@ -74,4 +75,5 @@ tqdm==4.67.3
 treetable==0.2.6
 typer==0.25.1
 typing_extensions==4.15.0
+Unidecode==1.4.0
 urllib3==2.7.0

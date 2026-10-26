@@ -1,5 +1,6 @@
 from src.core.audio_processor import AudioProcessor
 import json
+import os
 import re
 import shutil
 import statistics
@@ -231,6 +232,21 @@ class SyllablesTranscriber(AudioProcessor):
 
         if result.returncode != 0:
             raise RuntimeError(f"MFA failed with exit code {result.returncode}")
+
+    def _run_ctc(
+        self, audio_path: Path, lyrics: str, language: str, output_dir: Path
+    ) -> Path:
+        """Align the lyrics with the CTC aligner and write a TextGrid."""
+        import librosa
+        from src.core import ctc_word_aligner
+
+        words = [t["mfa"] for t in self._lyrics_tokens(lyrics)]
+        print(f"DEBUG: CTC aligner, {len(words)} word(s), language={language}")
+        bounds = ctc_word_aligner.align_words(audio_path, words, language)
+        duration = librosa.get_duration(path=str(audio_path))
+        return ctc_word_aligner.to_textgrid(
+            words, bounds, duration, output_dir / "audio.TextGrid"
+        )
 
     def _find_textgrid(self, output_dir: Path) -> Path:
         """Return the TextGrid produced by the current run.
@@ -858,15 +874,19 @@ class SyllablesTranscriber(AudioProcessor):
         input_dir.mkdir(parents=True, exist_ok=True)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        self._prepare_mfa_input(audio_path, lyrics, input_dir)
-        self._run_mfa(
-            input_dir, output_dir, acoustic_model, dictionary, g2p
-        )
-
-        tg_path = self._find_textgrid(output_dir)
+        use_ctc = os.environ.get("ALIGNER", "mfa").lower() == "ctc"
+        if use_ctc:
+            tg_path = self._run_ctc(audio_path, lyrics, language, output_dir)
+        else:
+            self._prepare_mfa_input(audio_path, lyrics, input_dir)
+            self._run_mfa(
+                input_dir, output_dir, acoustic_model, dictionary, g2p
+            )
+            tg_path = self._find_textgrid(output_dir)
 
         whisper_bounds = None
-        if self.whisper_model and self._needs_whisper_check(
+        # The Whisper drift check exists to patch MFA; CTC does not need it.
+        if not use_ctc and self.whisper_model and self._needs_whisper_check(
             tg_path, lyrics, language
         ):
             whisper_bounds = self._whisper_bounds(
