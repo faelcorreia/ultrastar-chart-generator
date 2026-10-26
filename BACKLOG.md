@@ -33,7 +33,7 @@ Decisão: o Rafael commita. Antes de despachar A1, confirmar que o `git status` 
 | A2 | Fazer o pipeline atual do `app.py` passar por `SongJob`, sem mudar comportamento | A1 | Feito (5224e91) |
 | A3 | Extrair estágios de `syllables_transcriber.py` (911 linhas) em módulos menores, sem mudar lógica | A2 | Feito (c9fa76e) |
 | A4 | `ultrastar_formatter.py` (769 linhas) passa a receber `Lyrics` e ser dividido em módulos, sem mudar saída | A2 | Feito (ad518c7) |
-| A5 | Cache por estágio em pasta de trabalho por música, com retomada | A2 | Refinado |
+| A5 | Cache por estágio em pasta de trabalho por música, com retomada | A2 | Feito (bb9f92d) |
 | A6 | Idioma explícito: resolver idioma por lista/tags/detecção do Whisper, remover o fallback silencioso `pt`, e normalização de texto por idioma (acentos, `ñ`, apóstrofos do inglês) | A1 | Feito (db5a777) |
 
 Decisões (A1): layout em `src/` com `model/ readers/ providers/ stages/ writer/ batch/`; tempo em segundos no modelo, conversão para beats só no writer.
@@ -46,7 +46,7 @@ Decisão (A5): um JSON por estágio em `output/<música>/.work`; retomada autom�
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| B1 | Aceitar FLAC, WAV, M4A, OGG, OPUS (normalizar via ffmpeg; saída sempre MP3) | A2 | Refinado |
+| B1 | Aceitar FLAC, WAV, M4A, OGG, OPUS (normalizar via ffmpeg; saída sempre MP3) | A2 | Feito (6105665) |
 | B2 | Reader de metadados: tags do arquivo + nome do arquivo, capa embutida | A1 | Feito (f2af66d) |
 
 Decisão (B1): converter tudo para MP3 na saída.
@@ -71,7 +71,7 @@ Decisão (C2): MusicBrainz/Cover Art Archive só para o que faltar (ano, álbum,
 | D1 | Parser de LRC para `Lyrics` com tempo por linha | A1 | Feito (3c39a4e) |
 | D2 | Alinhar palavras/sílabas dentro da janela de cada linha (CTC restrito) | A3, D1 | Feito (cb8838a) |
 | D3 | Letra pura + áudio: alinhamento forçado sem Whisper | A3 | Feito (cb8838a) |
-| D4 | Reconciliar letra baixada com a transcrição do Whisper: alinhamento de sequências, detectar refrão faltando, verso deslocado e trecho perdido; corrigir ordem/repetições e calcular confiança por música | D2, D3 | Refinado |
+| D4 | Reconciliar letra baixada com a transcrição do Whisper: alinhamento de sequências, detectar refrão faltando, verso deslocado e trecho perdido; corrigir ordem/repetições e calcular confiança por música | D2, D3 | Feito (2a2e2e9) |
 | D5 | Validar a sincronização de letras de fontes externas (LRC, KAR, CDG) contra o áudio, com duas medições independentes (Whisper e CTC) e correção: offset global, deriva ou linha a linha | D2, D4 | Refinado |
 
 Decisões (D1-D3): D1 corrige offset global do LRC estimando pelas palavras do Whisper e só aplica se melhorar o casamento; CTC (MMS, en/pt/es) alinha palavras dentro das janelas de linha e o MFA segue nas sílabas.
