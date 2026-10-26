@@ -135,7 +135,7 @@ class AudioAnalysisTest(unittest.TestCase):
                 job.year, job.cover_path = 2000, self.tmp / "c.jpg"
                 return job
             stages["syllables"] = stages["write"] = lambda j: None
-            stages["reconcile"] = lambda j: None
+            stages["reconcile"] = stages["sync_validate"] = lambda j: None
             res = run_job(build(), self.tmp / lang, stages)
             self.assertEqual(res.status, "done", (lang, res.reason))
             self.assertEqual([c[0] for c in calls],
