@@ -66,9 +66,12 @@ class UltraStarFormatter:
         shutil.copy(song["vocals"], os.path.join(
             base_directory, new_vocals_file))
 
-        new_cover_file = f"{artist_song} [CO]{Path(song['cover']).suffix}"
-        shutil.copy(song["cover"], os.path.join(
-            base_directory, new_cover_file))
+        # The cover is optional: the song works without one.
+        new_cover_file = None
+        if song.get("cover"):
+            new_cover_file = f"{artist_song} [CO]{Path(song['cover']).suffix}"
+            shutil.copy(song["cover"], os.path.join(
+                base_directory, new_cover_file))
 
         # Define the final UltraStar file
         ultrastar_file = os.path.join(base_directory, f"{artist_song}.txt")
@@ -138,7 +141,7 @@ class UltraStarFormatter:
             f"#AUDIO:{new_full_track_file}",
             f"#INSTRUMENTAL:{new_instrumental_file}",
             f"#VOCALS:{new_vocals_file}",
-            f"#COVER:{new_cover_file}",
+            *([f"#COVER:{new_cover_file}"] if new_cover_file else []),
             f"#BPM:{timing.format_number(bpm)}",
             f"#GAP:{gap_ms}",
         ]

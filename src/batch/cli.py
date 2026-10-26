@@ -37,9 +37,14 @@ def main(argv: Optional[List[str]] = None,
     if stages is None:
         from src.planner import default_stages
         from src.providers.lrclib import LrclibClient
+        from src.providers.musicbrainz import MusicBrainzClient
         lrclib = LrclibClient(
             cache_dir=Path(args.output_dir) / ".cache" / "lrclib")
-        stages = default_stages(args.output_dir, lrclib=lrclib)
+        musicbrainz = MusicBrainzClient(
+            "ultrastar-song-creator/0.1 (batch CLI)",
+            cover_dir=Path(args.output_dir) / ".cache" / "covers")
+        stages = default_stages(args.output_dir, lrclib=lrclib,
+                                musicbrainz=musicbrainz)
 
     def show(entry, res):
         print(f"[{res.status}] {entry.artist} - {entry.title}: {res.reason}",

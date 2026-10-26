@@ -56,7 +56,7 @@ def _write_stage(output_dir, writer: Writer):
         song = song_from_job(job)
         for key, label in (("full_track", "audio"), ("vocals", "vocals"),
                            ("instrumental", "instrumental"),
-                           ("cover", "cover"), ("pitches", "pitches"),
+                           ("pitches", "pitches"),
                            ("beats", "beats")):
             if key not in song:
                 raise ValueError(f"{label} required but not available")
