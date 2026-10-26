@@ -210,7 +210,7 @@ class RedistributeVoicedGapsTest(unittest.TestCase):
 
 
 class MergeSyllableNotesTest(unittest.TestCase):
-    def test_merges_hold_into_a_single_note(self):
+    def test_keeps_real_hold_as_continuation_notes(self):
         formatter = UltraStarFormatter({})
         entries = [{
             "start": 0.0,
@@ -218,6 +218,20 @@ class MergeSyllableNotesTest(unittest.TestCase):
             "notes": [
                 {"start": 0.0, "end": 0.5, "midi": 60.0},
                 {"start": 0.5, "end": 2.0, "midi": 62.0},
+            ],
+        }]
+
+        self.assertEqual(formatter._merge_syllable_notes(entries), 0)
+        self.assertEqual(len(entries[0]["notes"]), 2)
+
+    def test_merges_short_fragment_into_a_single_note(self):
+        formatter = UltraStarFormatter({})
+        entries = [{
+            "start": 0.0,
+            "end": 2.0,
+            "notes": [
+                {"start": 0.0, "end": 0.1, "midi": 60.0},
+                {"start": 0.1, "end": 2.0, "midi": 62.0},
             ],
         }]
 

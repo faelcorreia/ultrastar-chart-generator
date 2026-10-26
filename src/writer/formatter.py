@@ -239,5 +239,5 @@ class UltraStarFormatter:
             f"{octave_corrections} octave correction(s) | "
             f"{raised_to_min} note(s) raised to the minimum duration | "
             f"{fallback_notes} unvoiced syllable(s) filled from neighbors | "
-            f"{merged_holds} held syllable(s) merged into a single note"
+            f"{merged_holds} syllable(s) with fragmented notes consolidated"
         )

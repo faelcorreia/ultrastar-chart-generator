@@ -17,6 +17,9 @@ PITCH_CONFIDENCE_MIN = 0.10
 MEDIAN_WINDOW_FRAMES = 5      # ~50 ms with pyin's 10 ms hop
 MIN_STABLE_FRAMES = 6         # a pitch change must last ~60 ms
 MIN_NOTE_DURATION_S = 0.08
+# A pitch change inside a syllable only becomes a ``~`` continuation note
+# when each part lasts at least this long.
+MIN_HOLD_NOTE_S = 0.2
 EDGE_TRIM_S = 0.03
 OCTAVE_JUMP_SEMITONES = 7
 OCTAVE_TOLERANCE_SEMITONES = 2

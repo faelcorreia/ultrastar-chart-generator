@@ -3,7 +3,7 @@ import numpy as np
 
 from src.writer.constants import (
     EDGE_TRIM_S, MEDIAN_WINDOW_FRAMES, MIDI_FALLBACK, MIDI_MAX, MIDI_MIN,
-    MIN_NOTE_DURATION_S, MIN_STABLE_FRAMES, OCTAVE_JUMP_SEMITONES,
+    MIN_HOLD_NOTE_S, MIN_NOTE_DURATION_S, MIN_STABLE_FRAMES, OCTAVE_JUMP_SEMITONES,
     OCTAVE_TOLERANCE_SEMITONES, PITCH_CONFIDENCE_MIN,
 )
 
@@ -388,27 +388,60 @@ def fill_unvoiced_syllables(syllables: list[dict]) -> int:
     return filled
 
 
-def merge_syllable_notes(entries: list[dict]) -> int:
-    """Keep a single note per syllable, absorbing holds into that note.
+def merge_syllable_notes(entries: list[dict],
+                         min_hold_s: float = MIN_HOLD_NOTE_S) -> int:
+    """Keep real holds as ``~`` continuations, absorb the noisy fragments.
 
-    UltraStar marks a held syllable with extra ``~`` lines. When the chart
-    should not use them, the syllable becomes one note spanning its whole
-    duration, keeping the pitch of the note the singer holds the longest
-    (the breath/sustain stays inside the syllable).
+    When the singer holds a vowel and the pitch changes, the syllable keeps
+    one note per stable pitch; the writer emits the later ones as
+    ``: beat dur pitch ~`` lines. Fragments shorter than ``min_hold_s`` and
+    neighbors that share the same semitone are merged into the longer
+    neighbor, so a syllable only has several notes when each one is audible.
+    Returns the number of syllables whose notes were consolidated.
     """
-    merged = 0
+    changed = 0
 
     for entry in entries:
-        notes = entry["notes"]
+        notes = [dict(note) for note in entry["notes"]]
         if len(notes) < 2:
             continue
 
-        longest = max(notes, key=lambda note: note["end"] - note["start"])
-        entry["notes"] = [{
-            "start": notes[0]["start"],
-            "end": notes[-1]["end"],
-            "midi": longest["midi"],
-        }]
-        merged += 1
+        def duration(note: dict) -> float:
+            return note["end"] - note["start"]
 
-    return merged
+        def absorb(keep: int, drop: int) -> None:
+            a, b = notes[min(keep, drop)], notes[max(keep, drop)]
+            winner = notes[keep]
+            notes[min(keep, drop)] = {
+                "start": a["start"],
+                "end": b["end"],
+                "midi": winner["midi"],
+            }
+            del notes[max(keep, drop)]
+
+        while len(notes) > 1:
+            same = next(
+                (i for i in range(len(notes) - 1)
+                 if round(notes[i]["midi"]) == round(notes[i + 1]["midi"])),
+                None,
+            )
+            if same is not None:
+                longer = max((same, same + 1),
+                             key=lambda i: duration(notes[i]))
+                absorb(longer, same + (same + 1 - longer))
+                continue
+
+            shortest = min(range(len(notes)),
+                           key=lambda i: duration(notes[i]))
+            if duration(notes[shortest]) >= min_hold_s:
+                break
+            neighbors = [i for i in (shortest - 1, shortest + 1)
+                         if 0 <= i < len(notes)]
+            keep = max(neighbors, key=lambda i: duration(notes[i]))
+            absorb(keep, shortest)
+
+        if len(notes) != len(entry["notes"]):
+            changed += 1
+        entry["notes"] = notes
+
+    return changed
