@@ -8,6 +8,7 @@ os.environ.setdefault("OUTPUT_DIR", tempfile.gettempdir())
 
 from src.batch.report import BatchReport  # noqa: E402
 from src.core.language import LanguageError  # noqa: E402
+from src.core.text_norm import minimal_case  # noqa: E402
 from src.model.song_job import SongJob  # noqa: E402
 from src.planner import REVIEW, default_stages, run_job  # noqa: E402
 from src.stages.whisper_lyrics import lyrics_from_whisper  # noqa: E402
@@ -16,7 +17,7 @@ from tests.test_song_output import fake_syllables, fake_writer  # noqa: E402
 
 # (word, start, end): two phrases separated by a long pause, then a stanza gap
 WORDS = {
-    "en": ["Let it be", "whisper words of wisdom", "let it be"],
+    "en": ["LET it Be", "whisper Words of wisdom", "let it be"],
     "pt": ["Força estranha", "vi o menino correndo", "força estranha"],
     "es": ["Sueño mañana", "canción de niño aquí", "sueño mañana"],
 }
@@ -88,7 +89,10 @@ class WhisperFallbackTest(unittest.TestCase):
             lyr = res.job.lyrics
             self.assertEqual(lyr.source, "whisper")
             self.assertEqual(lyr.language, lang)
-            self.assertEqual([l.text for l in lyr.lines], WORDS[lang])
+            self.assertEqual([l.text for l in lyr.lines],
+                             [minimal_case(p, lang) for p in WORDS[lang]])
+            for l in lyr.lines:
+                self.assertTrue(l.text[0].isupper())
             self.assertTrue(lyr.is_synced)
             self.assertEqual([l.stanza_break_before for l in lyr.lines],
                              [False, True, True])

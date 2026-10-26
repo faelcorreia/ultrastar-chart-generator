@@ -60,3 +60,24 @@ def fold_for_compare(text: str, language: str) -> str:
     keep = r"[^\w\s']" if lang == "en" else r"[^\w\s]"
     text = re.sub(keep, " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+_EN_I = re.compile(r"(?<![\w'’])i(?=$|[^\w'’]|['’](?:m|ll|d|ve)(?![\w]))",
+                   re.IGNORECASE)
+
+
+def minimal_case(line: str, language: str) -> str:
+    """I11: uppercase only the first letter of the verse, lowercase the rest.
+
+    English keeps ``I`` and its contractions (I'm, I'll, I'd, I've) capital.
+    Spelling and grammar are never touched (artistic spelling is valid), and
+    only case changes, so accents, ``ñ`` and apostrophes pass through.
+    """
+    lang = base_language(language)
+    text = line.lower()
+    if lang == "en":
+        text = _EN_I.sub("I", text)
+    for i, ch in enumerate(text):
+        if ch.isalpha():
+            return text[:i] + ch.upper() + text[i + 1:]
+    return text

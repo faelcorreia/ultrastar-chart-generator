@@ -13,6 +13,7 @@ from typing import Callable, List, Optional, Sequence, Tuple
 
 from src.core.language import (
     SUPPORTED, LanguageError, normalize_code, tag_language)
+from src.core.text_norm import minimal_case
 from src.model.lyrics import Line, Lyrics
 from src.model.song_job import SongJob
 from src.segmentation import Word, segment_words
@@ -95,7 +96,7 @@ def lyrics_from_whisper(job: SongJob, transcriber: Transcriber = whisper_transcr
     seg = segment_words([Word(t, s, e) for t, s, e in words], lang)
     lines = []
     for i, part in enumerate(seg.lines):
-        lines.append(Line(text=" ".join(w.text for w in part),
+        lines.append(Line(text=minimal_case(" ".join(w.text for w in part), lang),
                           start=part[0].start, end=part[-1].end,
                           stanza_break_before=i in seg.stanza_starts))
     job.sources["lyrics"] = SOURCE
