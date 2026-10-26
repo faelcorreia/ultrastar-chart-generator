@@ -127,7 +127,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I1a | Ligar ao planner os estágios reais vocals, pitches e beats (hoje atrás da API de dicionários do `legacy.py`) | E1 | Feito (cb303be) |
 | I1b | Ligar ao planner os estágios reais syllables e write | I1a | Feito (eec4751) |
 | I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | A refinar |
-| I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (HASH) |
+| I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (4fa2a68) |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | A refinar |
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
 
