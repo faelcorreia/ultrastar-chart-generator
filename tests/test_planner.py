@@ -118,7 +118,7 @@ class PlannerTest(unittest.TestCase):
             res = run_job(job(), out, fakes.stages())
             self.assertEqual((res.status, res.reason), (DONE, "ok"), lang)
             self.assertEqual(fakes.calls, [
-                "normalize", "metadata", "lyrics", "language", "vocals",
+                "normalize", "metadata", "vocals", "lyrics", "language",
                 "reconcile", "sync_validate", "align_window", "pitches", "beats", "syllables", "write"])
             self.assertEqual(res.job.language, "en")
             fakes2 = Fakes(self.tmp, lyrics=lyr)

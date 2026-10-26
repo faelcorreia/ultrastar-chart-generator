@@ -81,11 +81,15 @@ def plan(job: SongJob) -> List[str]:
     if not (job.artist and job.title and job.year and job.cover_path):
         steps.append(METADATA)
     if job.lyrics is None:
+        if audio and job.vocals_path is None:
+            # Whisper (when LRCLIB has nothing) works far better on the
+            # separated vocals than on the full mix (I4 numbers).
+            steps.append(VOCALS)
         steps.append(LYRICS)
     if audio:
         if not job.resolved_language:
             steps.append(LANGUAGE)
-        if job.vocals_path is None:
+        if job.vocals_path is None and VOCALS not in steps:
             steps.append(VOCALS)
         if checkable(job):
             # I2: D4 then D5, before the lyrics are aligned

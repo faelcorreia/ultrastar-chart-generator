@@ -34,7 +34,9 @@ def whisper_transcriber(audio_path, language: Optional[str],
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
     segments, info = model.transcribe(
         str(audio_path), language=language, word_timestamps=True,
-        vad_filter=True)
+        # VAD drops most sung phrases (Pegasus Fantasy: 4 words with VAD vs
+        # 48 without, I4), so it stays off.
+        vad_filter=False)
     words: List[TimedWord] = []
     for seg in segments:
         for w in seg.words or []:
@@ -60,7 +62,10 @@ def lyrics_from_whisper(job: SongJob, transcriber: Transcriber = whisper_transcr
     else:
         lang = tag_reader(job.audio_path)
         origin = "from file tags" if lang else None
-    words, detected = transcriber(Path(job.audio_path), lang)
+    vocals = job.vocals_path
+    audio = Path(vocals) if vocals and Path(vocals).is_file() \
+        else Path(job.audio_path)
+    words, detected = transcriber(audio, lang)
     if lang is None:
         lang = normalize_code(detected)
         if lang is None:

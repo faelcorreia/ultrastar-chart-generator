@@ -133,7 +133,9 @@ class WhisperFallbackTest(unittest.TestCase):
                                 lambda p, l: (timed("en"), "en"))
 
     def test_nothing_transcribed_fails(self):
+        sep, _, _ = fake_runners([])
         stages = default_stages(self.tmp / "o", lrclib=FakeLrclib(),
+                                separate=sep,
                                 transcriber=lambda p, l: ([], l))
         res = run_job(self.job("es", language="es"), self.tmp / "o", stages)
         self.assertEqual(res.status, "failed")
