@@ -223,11 +223,12 @@ def _fail(result: JobResult, reason: str) -> JobResult:
 # -- default stages for the lightweight steps ------------------------------
 def default_stages(output_dir, lrclib=None, musicbrainz=None,
                    probe=None, separate=None, pitches=None,
-                   beats=None, syllables=None, writer=None
-                   ) -> Dict[str, Stage]:
+                   beats=None, syllables=None, writer=None,
+                   transcriber=None) -> Dict[str, Stage]:
     """Real implementations for every stage. `separate`, `pitches`,
     `beats`, `syllables` and `writer` replace the heavy analyzers and the
-    UltraStar writer (tests)."""
+    UltraStar writer (tests). `transcriber` is the Whisper word transcriber
+    used when LRCLIB has no lyrics (I3)."""
     from src.stages.audio_analysis import make_stages
     from src.stages.song_output import make_stages as make_song_output
     from src.core.language import resolve_language
@@ -235,6 +236,8 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
     from src.stages.audio_normalize import normalize_audio
     from src.stages.plain_alignment import align_plain_lyrics
     from src.stages.window_alignment import align_in_windows
+    from src.stages.whisper_lyrics import (
+        lyrics_from_whisper, whisper_transcriber)
 
     out = Path(output_dir)
 
@@ -255,6 +258,10 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
         if found is not None:
             job.lyrics = found.to_lyrics(job.language)
             job.sources["lyrics"] = job.lyrics.source or "lrclib"
+        elif has_audio(job):
+            # I3: no lyrics online -> Whisper transcription, flagged review
+            job.lyrics = lyrics_from_whisper(
+                job, transcriber or whisper_transcriber)
 
     def language(job):
         job.language = resolve_language(
@@ -266,8 +273,9 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
                                job.require_language())
         job.lyrics = res.lyrics
         if res.failed_lines:
-            job.extra["review"] = (
-                f"alignment failed on lines {res.failed_lines}")
+            msg = f"alignment failed on lines {res.failed_lines}"
+            prev = job.extra.get("review")
+            job.extra["review"] = f"{prev}; {msg}" if prev else msg
 
     def align_plain(job):
         job.lyrics = align_plain_lyrics(job.lyrics, job.audio_path,
