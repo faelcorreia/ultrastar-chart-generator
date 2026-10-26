@@ -129,6 +129,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | A refinar |
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha) | I1 | A refinar |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | A refinar |
+| I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
 
 Decisões (I): ordem fica a critério do Claude (sugestão: I1, I4 cedo, depois I2, I3). I3: sem letra no LRCLIB, cai no Whisper sozinho e marca a música como "revisar".
 
