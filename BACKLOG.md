@@ -124,7 +124,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| I1a | Ligar ao planner os estágios reais vocals, pitches e beats (hoje atrás da API de dicionários do `legacy.py`) | E1 | Refinado |
+| I1a | Ligar ao planner os estágios reais vocals, pitches e beats (hoje atrás da API de dicionários do `legacy.py`) | E1 | Feito (acc0f62) |
 | I1b | Ligar ao planner os estágios reais syllables e write | I1a | Refinado |
 | I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | A refinar |
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha) | I1 | A refinar |

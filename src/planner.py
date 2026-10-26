@@ -222,10 +222,13 @@ def _fail(result: JobResult, reason: str) -> JobResult:
 
 # -- default stages for the lightweight steps ------------------------------
 def default_stages(output_dir, lrclib=None, musicbrainz=None,
-                   probe=None) -> Dict[str, Stage]:
-    """Real implementations for normalize, metadata, lyrics, language and
-    alignment. vocals, pitches, beats, syllables and write are supplied by
-    the caller (they still live behind the legacy dict API)."""
+                   probe=None, separate=None, pitches=None,
+                   beats=None) -> Dict[str, Stage]:
+    """Real implementations for normalize, metadata, lyrics, language,
+    alignment, vocals, pitches and beats. `separate`, `pitches` and `beats`
+    replace the heavy analyzers (tests). syllables and write are supplied
+    by the caller (they still live behind the legacy dict API)."""
+    from src.stages.audio_analysis import make_stages
     from src.core.language import resolve_language
     from src.readers.metadata import read_metadata
     from src.stages.audio_normalize import normalize_audio
@@ -269,6 +272,8 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
         job.lyrics = align_plain_lyrics(job.lyrics, job.audio_path,
                                         job.require_language())
 
-    return {NORMALIZE: normalize, METADATA: metadata, LYRICS: lyrics,
-            LANGUAGE: language, ALIGN_WINDOW: align_window,
-            ALIGN_PLAIN: align_plain}
+    stages = {NORMALIZE: normalize, METADATA: metadata, LYRICS: lyrics,
+              LANGUAGE: language, ALIGN_WINDOW: align_window,
+              ALIGN_PLAIN: align_plain}
+    stages.update(make_stages(output_dir, separate, pitches, beats))
+    return stages
