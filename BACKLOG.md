@@ -129,4 +129,6 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha) | I1 | A refinar |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | A refinar |
 
-Perguntas abertas: ordem das fatias; I3 deve cair no Whisper sozinho ou marcar "revisar"?
+Decisões (I): ordem fica a critério do Claude (sugestão: I1, I4 cedo, depois I2, I3). I3: sem letra no LRCLIB, cai no Whisper sozinho e marca a música como "revisar".
+
+Problema levantado pelo Rafael (I5, A refinar): separar o texto em versos/linhas. Letra pura ou transcrição do Whisper vira um "linguição" sem quebras; não vale entregar assim. Precisa de uma estratégia de segmentação em linhas/estrofes (pausas do áudio, pontuação, repetição de refrão, comprimento de linha) e de um critério de qualidade verificável. Perguntas abertas: usar pausas do vocal como fonte principal? Limite de sílabas por linha? Testar em letras reais en/pt/es antes de decidir.
