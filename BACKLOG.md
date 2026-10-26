@@ -72,7 +72,7 @@ Decisão (C2): MusicBrainz/Cover Art Archive só para o que faltar (ano, álbum,
 | D2 | Alinhar palavras/sílabas dentro da janela de cada linha (CTC restrito) | A3, D1 | Feito (cb8838a) |
 | D3 | Letra pura + áudio: alinhamento forçado sem Whisper | A3 | Feito (cb8838a) |
 | D4 | Reconciliar letra baixada com a transcrição do Whisper: alinhamento de sequências, detectar refrão faltando, verso deslocado e trecho perdido; corrigir ordem/repetições e calcular confiança por música | D2, D3 | Feito (2a2e2e9) |
-| D5 | Validar a sincronização de letras de fontes externas (LRC, KAR, CDG) contra o áudio, com duas medições independentes (Whisper e CTC) e correção: offset global, deriva ou linha a linha | D2, D4 | Refinado |
+| D5 | Validar a sincronização de letras de fontes externas (LRC, KAR, CDG) contra o áudio, com duas medições independentes (Whisper e CTC) e correção: offset global, deriva ou linha a linha | D2, D4 | Feito (e1ca24d) |
 
 Decisões (D1-D3): D1 corrige offset global do LRC estimando pelas palavras do Whisper e só aplica se melhorar o casamento; CTC (MMS, en/pt/es) alinha palavras dentro das janelas de linha e o MFA segue nas sílabas.
 
@@ -88,7 +88,7 @@ Perguntas abertas:
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| E1 | `planner.py`: dado um `SongJob`, lista os estágios necessários e executa com cache | A5, D2, D3, C1 | Refinado |
+| E1 | `planner.py`: dado um `SongJob`, lista os estágios necessários e executa com cache | A5, D2, D3, C1 | Feito (1e0dbab) |
 
 Decisão (E1): só letra e sem áudio vai para a fila "aguardando áudio": guarda a letra, registra no relatório e retoma quando o áudio aparecer.
 
