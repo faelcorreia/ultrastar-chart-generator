@@ -8,6 +8,7 @@ from src.core.ultrastar_formatter import UltraStarFormatter
 from src.core.beats_analyzer import BeatsAnalyzer
 from src.core.pitches_analyzer import PitchesAnalyzer
 from src.core.syllables_transcriber import SyllablesTranscriber
+from src.model.legacy import absorb, job_from_song, song_from_job
 
 
 # Input files follow the "Artist - Song Title - <suffix>.<ext>" convention.
@@ -124,11 +125,15 @@ def _main() -> int:
         )
         return 1
 
-    print(f"Found {len(songs)} song(s):")
-    for artist_song, song in songs.items():
+    # Every song goes through a SongJob; the stages still get the dict view.
+    jobs = {name: job_from_song(song) for name, song in songs.items()}
+    songs = {name: song_from_job(job) for name, job in jobs.items()}
+
+    print(f"Found {len(jobs)} song(s):")
+    for artist_song, job in jobs.items():
         print(
-            f"  - {artist_song} [{song['language']}] "
-            f"({song['artist']} / {song['title']})"
+            f"  - {artist_song} [{job.language}] "
+            f"({job.artist} / {job.title})"
         )
 
     vocals = VocalsSeparator(songs)
@@ -137,20 +142,24 @@ def _main() -> int:
     syllables = SyllablesTranscriber(songs)
     ultrastar = UltraStarFormatter(songs)
 
-    for artist_song in songs:
+    for artist_song, job in jobs.items():
         print(f"\nAnalyzing {artist_song}")
 
         print("=> Running Demucs to extract vocals from the original audio")
         vocals.separate_vocals(artist_song=artist_song)
+        absorb(job, songs[artist_song])
 
         print("=> Running librosa to extract vocal pitches")
         pitches.analyze_pitches(artist_song=artist_song)
+        absorb(job, songs[artist_song])
 
         print("=> Running librosa to extract BPM from the original audio")
         beats.analyze_beats(artist_song=artist_song)
+        absorb(job, songs[artist_song])
 
         print("=> Running MFA to timestamp syllables")
         syllables.transcribe_vocals(artist_song)
+        absorb(job, songs[artist_song])
 
         print("=> Creating UltraStar song folder")
         ultrastar.format_ultrastar_song_folder(artist_song=artist_song)
