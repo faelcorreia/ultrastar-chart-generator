@@ -29,7 +29,7 @@ Decisão: o Rafael commita. Antes de despachar A1, confirmar que o `git status` 
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| A1 | Modelo de dados: `SongJob`, `Lyrics`, `Line`, `Syllable` (dataclasses, só tipos e testes, sem uso ainda) | P0 | Refinado |
+| A1 | Modelo de dados: `SongJob`, `Lyrics`, `Line`, `Syllable` (dataclasses, só tipos e testes, sem uso ainda) | P0 | Feito (4cf38e6) |
 | A2 | Fazer o pipeline atual do `app.py` passar por `SongJob`, sem mudar comportamento | A1 | Refinado |
 | A3 | Extrair estágios de `syllables_transcriber.py` (911 linhas) em módulos menores, sem mudar lógica | A2 | Refinado |
 | A4 | `ultrastar_formatter.py` (769 linhas) passa a receber `Lyrics` e ser dividido em módulos, sem mudar saída | A2 | Refinado |
