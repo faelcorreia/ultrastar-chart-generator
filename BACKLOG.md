@@ -130,6 +130,14 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (4fa2a68) |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | Feito (89e110e) — ver `docs/i4-results.md` |
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
+| I6 | Matcher aproximado (fuzzy) no D5 no lugar do prefixo exato de 3 palavras, para letra mal ouvida pelo Whisper. Medir antes/depois com `scripts/i4_compare.py` | I4 | A refinar |
+| I7 | Busca de título no LRCLIB tolerante a prefixos/variações (ex.: "12 - Tribalistas - Já Sei Namorar") | I4 | A refinar |
+| I8 | Português denso no caminho Whisper (22 linhas contra 86 na referência) e Jota Quest (só ruído): exigir letra pura de entrada? | I4 | A refinar |
+| I9 | Investigar Green Day - She (5% das linhas OK): referência diferente ou CTC travando em repetições | I4 | A refinar |
+| I10 | D4 insere refrão copiado com tempo errado (visto na Avril) | I4 | A refinar |
+| I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Refinado |
+| I12 | Til (`~`) para nota longa/segurada: quando a voz segura a vogal, a nota continua com `~` em vez de sílaba nova. Testes en/pt/es | I4 | Refinado |
+| I13 | Dessincronização "aleatória" e pausa antes da palavra ser cantada (visto em Pegasus Fantasy, es): geral está ok, mas linhas soltam do áudio. Diagnosticar com `i4_compare.py` por linha | I4 | A refinar |
 
 Decisões (I): ordem fica a critério do Claude (sugestão: I1, I4 cedo, depois I2, I3). I3: sem letra no LRCLIB, cai no Whisper sozinho e marca a música como "revisar".
 
@@ -137,5 +145,7 @@ Problema levantado pelo Rafael (I5, Refinado): separar o texto em versos/linhas.
 
 
 Decisões (I2, 2026-10-26): estimadores reais = Whisper + CTC/MMS no vocal separado; `normalize_audio` só quando a entrada não é MP3; ordem reconcile (D4) → sync_validate (D5). I4: Rafael liberou escolher um lote de áudios no sdcard e iterar variações sozinho; ele ouve quando o Claude pedir.
+
+Feedback do Rafael ao ouvir a I4 no UltraStar Play (2026-10-26): Pegasus Fantasy ok mas pouco alinhada, com pausa em palavra ainda não cantada e dessincronia ocasional; falta controle de maiúsculas/minúsculas (sem corrigir ortografia, pois grafia artística existe); quer o `~` de volta para nota longa. Pastas de teste: `/run/media/ghost/Dados/ultrastar-i4-ouvir` (já em SongDirs do UltraStar Play; backup `Settings.json.bak-i4`). Regra de disco: modelos em `/run/media/ghost/Dados/LLM/`.
 
 Decisões (poll, 2026-10-26): I1 dividida em I1a/I1b. I4: Rafael indica os arquivos de áudio (segue A refinar até lá). I5 (Refinado): fonte principal = pausas do vocal, com pontuação e repetição de refrão como apoio; limite de 12 sílabas por linha, configurável; critério verificável: nenhuma linha acima do limite e quebra em pausas longas; testes em en/pt/es.
