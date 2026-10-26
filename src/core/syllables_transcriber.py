@@ -58,7 +58,7 @@ class SyllablesTranscriber(
         song = self.songs[artist_song]
         audio_path = song["vocals"]
         lyrics_path = song["lyrics"]
-        language = song.get("language", "pt")
+        language = song["language"]
         acoustic_model, dictionary, g2p = self._models_for(language)
 
         output_json_path = self.output_dir / f"{artist_song} - syllables.json"

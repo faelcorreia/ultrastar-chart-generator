@@ -27,7 +27,10 @@ class LanguageMixin:
     def _resolve_language(self, language: str | None) -> str:
         """Return a configured language code (base language) for ``language``."""
         if not language:
-            return "pt"
+            raise ValueError(
+                "Language not resolved; it must be given explicitly "
+                "(list/tags/detection) before this stage."
+            )
 
         lang = language.strip().lower().replace("_", "-")
         if lang in self._LANGUAGE_MODELS:
@@ -63,7 +66,9 @@ class LanguageMixin:
         )
 
     def _pyphen_language(self, language: str | None) -> str:
-        lang = (language or "pt").strip().lower().replace("_", "-")
+        if not language:
+            raise ValueError("Language not resolved; cannot pick hyphenation.")
+        lang = language.strip().lower().replace("_", "-")
         if lang in self._LANG_MAP:
             return self._LANG_MAP[lang]
 

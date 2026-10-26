@@ -21,7 +21,7 @@ class InputFileParsingTest(unittest.TestCase):
         self.assertEqual(parsed["artist"], "Example Artist")
         self.assertEqual(parsed["title"], "Example Song")
         self.assertEqual(parsed["role"], "full_track")
-        self.assertEqual(parsed["language"], "pt")
+        self.assertIsNone(parsed["language"])
 
     def test_lyrics_with_language(self):
         parsed = _parse_input_file(
@@ -33,11 +33,11 @@ class InputFileParsingTest(unittest.TestCase):
         self.assertEqual(parsed["role"], "lyrics")
         self.assertEqual(parsed["language"], "en")
 
-    def test_lyrics_without_language_defaults_to_portuguese(self):
+    def test_lyrics_without_language_stays_unresolved(self):
         parsed = _parse_input_file(Path("Artist - Song - lyrics.txt"))
 
         self.assertEqual(parsed["role"], "lyrics")
-        self.assertEqual(parsed["language"], "pt")
+        self.assertIsNone(parsed["language"])
 
     def test_cover(self):
         parsed = _parse_input_file(Path("Artist - Song - cover.jpg"))

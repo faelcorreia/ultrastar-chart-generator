@@ -69,8 +69,8 @@ Decisão (C2): MusicBrainz/Cover Art Archive só para o que faltar (ano, álbum,
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
 | D1 | Parser de LRC para `Lyrics` com tempo por linha | A1 | Feito (3c39a4e) |
-| D2 | Alinhar palavras/sílabas dentro da janela de cada linha (CTC restrito) | A3, D1 | Refinado |
-| D3 | Letra pura + áudio: alinhamento forçado sem Whisper | A3 | Refinado |
+| D2 | Alinhar palavras/sílabas dentro da janela de cada linha (CTC restrito) | A3, D1 | Feito (cb8838a) |
+| D3 | Letra pura + áudio: alinhamento forçado sem Whisper | A3 | Feito (cb8838a) |
 | D4 | Reconciliar letra baixada com a transcrição do Whisper: alinhamento de sequências, detectar refrão faltando, verso deslocado e trecho perdido; corrigir ordem/repetições e calcular confiança por música | D2, D3 | Refinado |
 | D5 | Validar a sincronização de letras de fontes externas (LRC, KAR, CDG) contra o áudio, com duas medições independentes (Whisper e CTC) e correção: offset global, deriva ou linha a linha | D2, D4 | Refinado |
 
@@ -108,9 +108,9 @@ Decisões (F1): o áudio é localizado numa pasta indicada, casando `Artista - T
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
 | G1 | Reader KAR/MIDI: letra, tempo por sílaba e melodia | A1 | Feito (3c39a4e) |
-| G2 | Render de áudio MIDI (FluidSynth + soundfont) | G1 | Refinado |
+| G2 | Render de áudio MIDI (FluidSynth + soundfont) | G1 | Feito (a1100ac) |
 | G3 | Parser CDG (+ zip MP3+CDG): extrair letra e tempo | A1 | Feito (3c39a4e) |
-| G4 | Vídeo instrumental com letra via OCR | A1 | Refinado |
+| G4 | Vídeo instrumental com letra via OCR | A1 | Feito (a1100ac) |
 
 Decisões (G): G1 usa a melodia do MIDI quando existir, senão pitch tracking; G3 usa o parser dos comandos de realce do CDG para o tempo e OCR só para ler o texto; G4 fica por último.
 

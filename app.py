@@ -8,6 +8,7 @@ from src.core.ultrastar_formatter import UltraStarFormatter
 from src.core.beats_analyzer import BeatsAnalyzer
 from src.core.pitches_analyzer import PitchesAnalyzer
 from src.core.syllables_transcriber import SyllablesTranscriber
+from src.core.language import LanguageError, resolve_language
 from src.model.legacy import absorb, job_from_song, song_from_job
 
 
@@ -52,7 +53,7 @@ def _parse_input_file(path: Path) -> dict | None:
             "artist": artist.strip(),
             "title": title.strip(),
             "role": role,
-            "language": (match.groupdict().get("language") or "pt").lower(),
+            "language": (match.groupdict().get("language") or "").lower() or None,
             "path": path,
         }
 
@@ -85,7 +86,7 @@ def _collect_songs(input_dir: Path) -> dict:
             )
         song[role] = path
 
-        if role == "lyrics":
+        if role == "lyrics" and parsed["language"]:
             song["language"] = parsed["language"]
 
     valid_songs = {}
@@ -125,8 +126,24 @@ def _main() -> int:
         )
         return 1
 
+    # Explicit language: list/filename, tags, then Whisper (flagged), else fail.
+    notes_by_song: dict[str, list[str]] = {}
+    for name in list(songs):
+        song = songs[name]
+        notes_by_song[name] = []
+        try:
+            song["language"] = resolve_language(
+                song.get("language"), song.get("full_track"),
+                notes=notes_by_song[name], label=f"'{name}'",
+            )
+        except LanguageError as exc:
+            print(f"[ERROR] {exc}")
+            return 1
+
     # Every song goes through a SongJob; the stages still get the dict view.
     jobs = {name: job_from_song(song) for name, song in songs.items()}
+    for name, job in jobs.items():
+        job.notes.extend(notes_by_song[name])
     songs = {name: song_from_job(job) for name, job in jobs.items()}
 
     print(f"Found {len(jobs)} song(s):")
@@ -135,6 +152,8 @@ def _main() -> int:
             f"  - {artist_song} [{job.language}] "
             f"({job.artist} / {job.title})"
         )
+        for note in job.notes:
+            print(f"    [NOTE] {note}")
 
     vocals = VocalsSeparator(songs)
     pitches = PitchesAnalyzer(songs)
