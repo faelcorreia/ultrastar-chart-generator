@@ -126,7 +126,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 |---|---|---|---|
 | I1a | Ligar ao planner os estágios reais vocals, pitches e beats (hoje atrás da API de dicionários do `legacy.py`) | E1 | Feito (cb303be) |
 | I1b | Ligar ao planner os estágios reais syllables e write | I1a | Feito (eec4751) |
-| I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | A refinar |
+| I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | Feito (86f0c3b) |
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (4fa2a68) |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | A refinar |
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
@@ -135,5 +135,7 @@ Decisões (I): ordem fica a critério do Claude (sugestão: I1, I4 cedo, depois 
 
 Problema levantado pelo Rafael (I5, Refinado): separar o texto em versos/linhas. Letra pura ou transcrição do Whisper vira um "linguição" sem quebras; não vale entregar assim. Precisa de uma estratégia de segmentação em linhas/estrofes (pausas do áudio, pontuação, repetição de refrão, comprimento de linha) e de um critério de qualidade verificável. Perguntas abertas: usar pausas do vocal como fonte principal? Limite de sílabas por linha? Testar em letras reais en/pt/es antes de decidir.
 
+
+Decisões (I2, 2026-10-26): estimadores reais = Whisper + CTC/MMS no vocal separado; `normalize_audio` só quando a entrada não é MP3; ordem reconcile (D4) → sync_validate (D5). I4: Rafael liberou escolher um lote de áudios no sdcard e iterar variações sozinho; ele ouve quando o Claude pedir.
 
 Decisões (poll, 2026-10-26): I1 dividida em I1a/I1b. I4: Rafael indica os arquivos de áudio (segue A refinar até lá). I5 (Refinado): fonte principal = pausas do vocal, com pontuação e repetição de refrão como apoio; limite de 12 sílabas por linha, configurável; critério verificável: nenhuma linha acima do limite e quebra em pausas longas; testes em en/pt/es.
