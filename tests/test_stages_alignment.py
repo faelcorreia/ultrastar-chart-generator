@@ -104,6 +104,18 @@ class PlainTest(unittest.TestCase):
                 self.assertLess(out.lines[0].end, out.lines[1].start + 1e-6)
                 self.assertEqual(out.language, lang)
 
+    def test_blob_is_segmented_by_pauses(self):
+        text = "one two three four five six seven eight nine ten eleven twelve"
+        bounds = [(i * 0.3, i * 0.3 + 0.25) for i in range(12)]
+        bounds[6] = (bounds[6][0] + 2.5, bounds[6][1] + 2.5)
+        bounds[7:] = [(a + 2.5, b + 2.5) for a, b in bounds[7:]]
+        out = align_plain_lyrics(Lyrics.from_text(text, "en"), Path("a.mp3"),
+                                 aligner=lambda *a: bounds,
+                                 syllabifier=fake_syl)
+        self.assertEqual(len(out.lines), 2)
+        self.assertTrue(out.lines[1].stanza_break_before)
+        self.assertFalse(out.lines[0].stanza_break_before)
+
     def test_language_required(self):
         with self.assertRaises(ValueError):
             align_plain_lyrics(Lyrics.from_text("hola mundo"), Path("a.mp3"),

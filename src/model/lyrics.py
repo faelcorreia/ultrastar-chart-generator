@@ -30,6 +30,8 @@ class Line:
     start: Optional[float] = None
     end: Optional[float] = None
     syllables: List[Syllable] = field(default_factory=list)
+    # True when a stanza break (blank line) precedes this line (I5).
+    stanza_break_before: bool = False
 
     def __post_init__(self):
         if not self.text and self.syllables:
