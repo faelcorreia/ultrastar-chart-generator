@@ -74,6 +74,7 @@ class WhisperFallbackTest(unittest.TestCase):
                 syllables=fake_syllables([]), writer=fake_writer(wc),
                 transcriber=transcriber)
             stages["align_window"] = lambda j: None  # heavy CTC aligner
+            stages["reconcile"] = lambda j: None
             report = BatchReport(out / "report.json")
             res = run_job(self.job(lang, language=lang), out, stages)
             self.assertEqual(res.status, REVIEW, (lang, res.reason))

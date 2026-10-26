@@ -40,7 +40,8 @@ def fake_stages(calls):
                 job.extra["written"] = True
         return stage
     names = ["normalize", "metadata", "lyrics", "language", "vocals", "align",
-             "align_window", "align_plain", "pitches", "beats", "syllables",
+             "reconcile", "sync_validate", "align_window", "align_plain",
+             "pitches", "beats", "syllables",
              "write"]
     return {n: mk(n) for n in names}
 

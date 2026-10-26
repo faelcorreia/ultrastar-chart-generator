@@ -84,6 +84,7 @@ class SongOutputTest(unittest.TestCase):
                                     beats=bea, syllables=fake_syllables(sc),
                                     writer=fake_writer(wc))
             stages["align_plain"] = lambda j: None  # heavy CTC aligner
+            stages["reconcile"] = lambda j: None  # covered in test_verify
             res = run_job(self.job(lang), out, stages)
             self.assertEqual(res.status, "done", (lang, res.reason))
             self.assertEqual(res.ran[-2:], ["syllables", "write"])

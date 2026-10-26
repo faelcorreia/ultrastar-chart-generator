@@ -62,6 +62,8 @@ class Fakes:
             "lyrics": mk("lyrics", lyrics),
             "language": mk("language", language),
             "vocals": mk("vocals", vocals),
+            "reconcile": mk("reconcile"),
+            "sync_validate": mk("sync_validate"),
             "align_window": mk("align_window", align),
             "align_plain": mk("align_plain", align),
             "pitches": mk("pitches"), "beats": mk("beats"),
@@ -93,7 +95,7 @@ class PlannerTest(unittest.TestCase):
                           audio_path=self.audio(f"{lang}.flac"),
                           lyrics=Lyrics.from_text(line, language=lang))
             self.assertEqual(plan(job), [
-                "normalize", "metadata", "vocals", "align_plain", "pitches",
+                "normalize", "metadata", "vocals", "reconcile", "align_plain", "pitches",
                 "beats", "syllables", "write"])
             job.lyrics = Lyrics(lines=[Line(text=line, start=1.0)])
             self.assertIn("align_window", plan(job))
@@ -117,13 +119,13 @@ class PlannerTest(unittest.TestCase):
             self.assertEqual((res.status, res.reason), (DONE, "ok"), lang)
             self.assertEqual(fakes.calls, [
                 "normalize", "metadata", "lyrics", "language", "vocals",
-                "align_window", "pitches", "beats", "syllables", "write"])
+                "reconcile", "sync_validate", "align_window", "pitches", "beats", "syllables", "write"])
             self.assertEqual(res.job.language, "en")
             fakes2 = Fakes(self.tmp, lyrics=lyr)
             res2 = run_job(job(), out, fakes2.stages())
             self.assertEqual(res2.status, DONE)
             self.assertEqual(fakes2.calls, [], lang)
-            self.assertEqual(len(res2.cached), 10)
+            self.assertEqual(len(res2.cached), 12)
 
     def test_plain_lyrics_use_plain_alignment(self):
         fakes = Fakes(self.tmp, lyrics=Lyrics.from_text("hola mundo"))

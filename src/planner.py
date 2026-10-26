@@ -21,6 +21,7 @@ from typing import Callable, Dict, List, Optional
 
 from src.model.song_job import SongJob
 from src.stages.cache import StageCache, fingerprint
+from src.stages.verify_lyrics import applies as checkable
 
 DONE = "done"
 FAILED = "failed"
@@ -30,6 +31,7 @@ AWAITING_AUDIO = "awaiting_audio"
 NORMALIZE, METADATA, LYRICS, LANGUAGE = "normalize", "metadata", "lyrics", "language"
 VOCALS, ALIGN, ALIGN_WINDOW, ALIGN_PLAIN = "vocals", "align", "align_window", "align_plain"
 PITCHES, BEATS, SYLLABLES, WRITE = "pitches", "beats", "syllables", "write"
+RECONCILE, SYNC_VALIDATE = "reconcile", "sync_validate"
 
 Stage = Callable[[SongJob], None]
 _AWAITING_STAGE = "awaiting_audio"
@@ -85,6 +87,11 @@ def plan(job: SongJob) -> List[str]:
             steps.append(LANGUAGE)
         if job.vocals_path is None:
             steps.append(VOCALS)
+        if checkable(job):
+            # I2: D4 then D5, before the lyrics are aligned
+            steps.append(RECONCILE)
+            if job.lyrics.is_synced:
+                steps.append(SYNC_VALIDATE)
         if job.lyrics is None or not job.lyrics.has_syllable_timing:
             steps.append(ALIGN)
         steps += [PITCHES, BEATS, SYLLABLES, WRITE]
@@ -224,16 +231,18 @@ def _fail(result: JobResult, reason: str) -> JobResult:
 def default_stages(output_dir, lrclib=None, musicbrainz=None,
                    probe=None, separate=None, pitches=None,
                    beats=None, syllables=None, writer=None,
-                   transcriber=None) -> Dict[str, Stage]:
+                   transcriber=None, aligner=None) -> Dict[str, Stage]:
     """Real implementations for every stage. `separate`, `pitches`,
     `beats`, `syllables` and `writer` replace the heavy analyzers and the
     UltraStar writer (tests). `transcriber` is the Whisper word transcriber
-    used when LRCLIB has no lyrics (I3)."""
+    used when LRCLIB has no lyrics (I3) and by reconcile/sync_validate (I2);
+    `aligner` is the CTC window aligner they use (default: real MMS)."""
     from src.stages.audio_analysis import make_stages
     from src.stages.song_output import make_stages as make_song_output
     from src.core.language import resolve_language
     from src.readers.metadata import read_metadata
     from src.stages.audio_normalize import normalize_audio
+    from src.stages.verify_lyrics import make_stages as make_verify
     from src.stages.plain_alignment import align_plain_lyrics
     from src.stages.window_alignment import align_in_windows
     from src.stages.whisper_lyrics import (
@@ -284,6 +293,7 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
     stages = {NORMALIZE: normalize, METADATA: metadata, LYRICS: lyrics,
               LANGUAGE: language, ALIGN_WINDOW: align_window,
               ALIGN_PLAIN: align_plain}
+    stages.update(make_verify(transcriber, aligner))
     stages.update(make_stages(output_dir, separate, pitches, beats))
     stages.update(make_song_output(output_dir, syllables, writer))
     return stages
