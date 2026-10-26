@@ -34,7 +34,7 @@ Decisão: o Rafael commita. Antes de despachar A1, confirmar que o `git status` 
 | A3 | Extrair estágios de `syllables_transcriber.py` (911 linhas) em módulos menores, sem mudar lógica | A2 | Feito (c9fa76e) |
 | A4 | `ultrastar_formatter.py` (769 linhas) passa a receber `Lyrics` e ser dividido em módulos, sem mudar saída | A2 | Feito (ad518c7) |
 | A5 | Cache por estágio em pasta de trabalho por música, com retomada | A2 | Refinado |
-| A6 | Idioma explícito: resolver idioma por lista/tags/detecção do Whisper, remover o fallback silencioso `pt`, e normalização de texto por idioma (acentos, `ñ`, apóstrofos do inglês) | A1 | Refinado |
+| A6 | Idioma explícito: resolver idioma por lista/tags/detecção do Whisper, remover o fallback silencioso `pt`, e normalização de texto por idioma (acentos, `ñ`, apóstrofos do inglês) | A1 | Feito (db5a777) |
 
 Decisões (A1): layout em `src/` com `model/ readers/ providers/ stages/ writer/ batch/`; tempo em segundos no modelo, conversão para beats só no writer.
 
