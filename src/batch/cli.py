@@ -36,7 +36,10 @@ def main(argv: Optional[List[str]] = None,
     entries = parse_song_list(args.list_file)
     if stages is None:
         from src.planner import default_stages
-        stages = default_stages(args.output_dir)
+        from src.providers.lrclib import LrclibClient
+        lrclib = LrclibClient(
+            cache_dir=Path(args.output_dir) / ".cache" / "lrclib")
+        stages = default_stages(args.output_dir, lrclib=lrclib)
 
     def show(entry, res):
         print(f"[{res.status}] {entry.artist} - {entry.title}: {res.reason}",
