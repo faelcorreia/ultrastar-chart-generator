@@ -32,6 +32,10 @@ TOLERANCE = 0.5
 # A global offset/drift needs several agreeing anchors; one or two noisy
 # lines must not shift the whole song (found in the I4 real runs).
 MIN_GLOBAL_ANCHORS = 3
+# Whisper is often deaf to sung vocals (I4: 0-10% of lines on two English
+# songs). Below this coverage its silence is not a disagreement, so CTC
+# alone stands in for it and the report says so.
+MIN_WHISPER_COVERAGE = 0.3
 MIN_GLOBAL_MATCH = 0.5
 OK, SHIFTED, UNCERTAIN = "ok", "shifted", "uncertain"
 NONE, OFFSET, DRIFT, LINES = "none", "offset", "drift", "lines"
@@ -72,6 +76,7 @@ class SyncReport:
     pct_uncertain: float
     pct_ok_after: float
     status: str                      # "ok" | "review"
+    ctc_only: bool = False           # Whisper too deaf; CTC alone judged
 
     def lines_of(self, status: str) -> List[LineCheck]:
         return [c for c in self.checks if c.status == status]
@@ -170,9 +175,12 @@ def validate_sync(
     ws += [None] * (n - len(ws))
     cs += [None] * (n - len(cs))
 
+    heard = sum(1 for w in ws[:n] if w is not None)
+    ctc_only = n > 0 and heard / n < MIN_WHISPER_COVERAGE
     checks, est = [], []
     for i, line in enumerate(lyrics.lines):
-        status, e = _classify(line.start, ws[i], cs[i], tolerance)
+        w = cs[i] if (ctc_only and ws[i] is None) else ws[i]
+        status, e = _classify(line.start, w, cs[i], tolerance)
         checks.append(LineCheck(i, line.text, line.start, ws[i], cs[i], status))
         est.append(e)
 
@@ -241,4 +249,6 @@ def validate_sync(
         lyrics=corrected, language=lang, checks=checks, correction=best,
         pct_ok=pct(OK), pct_shifted=pct(SHIFTED), pct_uncertain=pct(UNCERTAIN),
         pct_ok_after=ok_after,
-        status="review" if any(c.status == UNCERTAIN for c in checks) else "ok")
+        status=("review" if ctc_only or any(
+            c.status == UNCERTAIN for c in checks) else "ok"),
+        ctc_only=ctc_only)

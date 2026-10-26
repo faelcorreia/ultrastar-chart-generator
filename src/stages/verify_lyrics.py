@@ -177,12 +177,18 @@ def make_stages(transcriber=None, aligner=None) -> Dict[str, Callable]:
             "uncertain_pct": round(rep.pct_uncertain, 1),
             "ok_after_pct": round(rep.pct_ok_after, 1),
             "correction": rep.correction.kind,
+            "ctc_only": rep.ctc_only,
             "uncertain_lines": [
                 {"line": c.index, "text": c.text, "source": c.source,
                  "whisper": c.whisper, "ctc": c.ctc}
                 for c in rep.lines_of(UNCERTAIN)],
         }
-        if rep.status == "review":
+        if rep.ctc_only:
+            flag_review(job, (
+                "Whisper heard too few lines to confirm the sync; timing "
+                f"judged by CTC alone ({rep.pct_uncertain:.0f}% of lines "
+                "still uncertain); review"))
+        elif rep.status == "review":
             flag_review(job, (
                 f"sync uncertain on {rep.pct_uncertain:.0f}% of lines "
                 "(Whisper and CTC disagree); review"))

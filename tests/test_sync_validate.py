@@ -45,6 +45,14 @@ def run(lang, src, w=TRUE, c=TRUE):
 
 
 class SyncValidateTest(unittest.TestCase):
+    def test_deaf_whisper_falls_back_to_ctc(self):
+        for lang in SONGS:
+            r = run(lang, [t + 3.0 for t in TRUE], w=[None] * 6, c=TRUE)
+            self.assertTrue(r.ctc_only)
+            self.assertEqual(r.status, "review")
+            for line, t in zip(r.lyrics.lines, TRUE):
+                self.assertAlmostEqual(line.start, t, places=3)
+
     def test_single_anchor_does_not_shift_whole_song(self):
         for lang in SONGS:
             none = [None] * 6
