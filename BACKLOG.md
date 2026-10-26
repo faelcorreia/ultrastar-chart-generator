@@ -31,8 +31,8 @@ Decisão: o Rafael commita. Antes de despachar A1, confirmar que o `git status` 
 |---|---|---|---|
 | A1 | Modelo de dados: `SongJob`, `Lyrics`, `Line`, `Syllable` (dataclasses, só tipos e testes, sem uso ainda) | P0 | Feito (4cf38e6) |
 | A2 | Fazer o pipeline atual do `app.py` passar por `SongJob`, sem mudar comportamento | A1 | Feito (5224e91) |
-| A3 | Extrair estágios de `syllables_transcriber.py` (911 linhas) em módulos menores, sem mudar lógica | A2 | Refinado |
-| A4 | `ultrastar_formatter.py` (769 linhas) passa a receber `Lyrics` e ser dividido em módulos, sem mudar saída | A2 | Refinado |
+| A3 | Extrair estágios de `syllables_transcriber.py` (911 linhas) em módulos menores, sem mudar lógica | A2 | Feito (c9fa76e) |
+| A4 | `ultrastar_formatter.py` (769 linhas) passa a receber `Lyrics` e ser dividido em módulos, sem mudar saída | A2 | Feito (ad518c7) |
 | A5 | Cache por estágio em pasta de trabalho por música, com retomada | A2 | Refinado |
 | A6 | Idioma explícito: resolver idioma por lista/tags/detecção do Whisper, remover o fallback silencioso `pt`, e normalização de texto por idioma (acentos, `ñ`, apóstrofos do inglês) | A1 | Refinado |
 
@@ -47,7 +47,7 @@ Decisão (A5): um JSON por estágio em `output/<música>/.work`; retomada autom�
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
 | B1 | Aceitar FLAC, WAV, M4A, OGG, OPUS (normalizar via ffmpeg; saída sempre MP3) | A2 | Refinado |
-| B2 | Reader de metadados: tags do arquivo + nome do arquivo, capa embutida | A1 | Refinado |
+| B2 | Reader de metadados: tags do arquivo + nome do arquivo, capa embutida | A1 | Feito (f2af66d) |
 
 Decisão (B1): converter tudo para MP3 na saída.
 
@@ -57,8 +57,8 @@ Decisão (B2): nomes no padrão `Artista - Título`; tags do MP3 têm prioridade
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| C1 | Cliente LRCLIB (`/api/get`, `/api/search`), cache em disco, validação por duração | A1 | Refinado |
-| C2 | MusicBrainz + Cover Art Archive: metadados e capa | A1 | Refinado |
+| C1 | Cliente LRCLIB (`/api/get`, `/api/search`), cache em disco, validação por duração | A1 | Feito (f2af66d) |
+| C2 | MusicBrainz + Cover Art Archive: metadados e capa | A1 | Feito (f2af66d) |
 
 Decisões (C1): aceitar LRC com duração dentro de ±3 s; preferir sincronizada, usar letra pura só se não houver; API online com cache em disco (sem dump local).
 
@@ -68,7 +68,7 @@ Decisão (C2): MusicBrainz/Cover Art Archive só para o que faltar (ano, álbum,
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| D1 | Parser de LRC para `Lyrics` com tempo por linha | A1 | Refinado |
+| D1 | Parser de LRC para `Lyrics` com tempo por linha | A1 | Feito (3c39a4e) |
 | D2 | Alinhar palavras/sílabas dentro da janela de cada linha (CTC restrito) | A3, D1 | Refinado |
 | D3 | Letra pura + áudio: alinhamento forçado sem Whisper | A3 | Refinado |
 | D4 | Reconciliar letra baixada com a transcrição do Whisper: alinhamento de sequências, detectar refrão faltando, verso deslocado e trecho perdido; corrigir ordem/repetições e calcular confiança por música | D2, D3 | Refinado |
@@ -107,9 +107,9 @@ Decisões (F1): o áudio é localizado numa pasta indicada, casando `Artista - T
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| G1 | Reader KAR/MIDI: letra, tempo por sílaba e melodia | A1 | Refinado |
+| G1 | Reader KAR/MIDI: letra, tempo por sílaba e melodia | A1 | Feito (3c39a4e) |
 | G2 | Render de áudio MIDI (FluidSynth + soundfont) | G1 | Refinado |
-| G3 | Parser CDG (+ zip MP3+CDG): extrair letra e tempo | A1 | Refinado |
+| G3 | Parser CDG (+ zip MP3+CDG): extrair letra e tempo | A1 | Feito (3c39a4e) |
 | G4 | Vídeo instrumental com letra via OCR | A1 | Refinado |
 
 Decisões (G): G1 usa a melodia do MIDI quando existir, senão pitch tracking; G3 usa o parser dos comandos de realce do CDG para o tempo e OCR só para ler o texto; G4 fica por último.
