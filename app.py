@@ -10,6 +10,7 @@ from src.core.pitches_analyzer import PitchesAnalyzer
 from src.core.syllables_transcriber import SyllablesTranscriber
 from src.core.language import LanguageError, resolve_language
 from src.model.legacy import absorb, job_from_song, song_from_job
+from src.stages.cache import StageCache, fingerprint, run_stage
 
 
 # Input files follow the "Artist - Song Title - <suffix>.<ext>" convention.
@@ -111,7 +112,10 @@ def _main() -> int:
 
     songs = _collect_songs(input_dir)
     # Optional arguments restrict the run to the named "Artist - Title" songs.
-    wanted = sys.argv[1:]
+    # --force recomputes every stage instead of resuming from .work caches.
+    args = sys.argv[1:]
+    force = "--force" in args
+    wanted = [arg for arg in args if arg != "--force"]
     if wanted:
         unknown = [name for name in wanted if name not in songs]
         if unknown:
@@ -163,22 +167,30 @@ def _main() -> int:
 
     for artist_song, job in jobs.items():
         print(f"\nAnalyzing {artist_song}")
+        song = songs[artist_song]
+        cache = StageCache(config.OUTPUT_DIR, artist_song, enabled=not force)
+        language = job.language
+        # Each key chains the previous one, so a changed input invalidates
+        # every later stage.
+        key = fingerprint(song["full_track"], language)
 
-        print("=> Running Demucs to extract vocals from the original audio")
-        vocals.separate_vocals(artist_song=artist_song)
-        absorb(job, songs[artist_song])
+        def stage(name, message, func, *extra):
+            nonlocal key
+            key = fingerprint(key, name, *extra)
+            print(message)
+            if run_stage(cache, name, key, song, func):
+                print(f"   (cached: skipping {name})")
+            absorb(job, song)
 
-        print("=> Running librosa to extract vocal pitches")
-        pitches.analyze_pitches(artist_song=artist_song)
-        absorb(job, songs[artist_song])
-
-        print("=> Running librosa to extract BPM from the original audio")
-        beats.analyze_beats(artist_song=artist_song)
-        absorb(job, songs[artist_song])
-
-        print("=> Running MFA to timestamp syllables")
-        syllables.transcribe_vocals(artist_song)
-        absorb(job, songs[artist_song])
+        stage("vocals", "=> Running Demucs to extract vocals from the original audio",
+              lambda: vocals.separate_vocals(artist_song=artist_song))
+        stage("pitches", "=> Running librosa to extract vocal pitches",
+              lambda: pitches.analyze_pitches(artist_song=artist_song))
+        stage("beats", "=> Running librosa to extract BPM from the original audio",
+              lambda: beats.analyze_beats(artist_song=artist_song))
+        stage("syllables", "=> Running MFA to timestamp syllables",
+              lambda: syllables.transcribe_vocals(artist_song),
+              song["lyrics"])
 
         print("=> Creating UltraStar song folder")
         ultrastar.format_ultrastar_song_folder(artist_song=artist_song)
