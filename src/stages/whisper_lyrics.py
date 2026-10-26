@@ -23,6 +23,10 @@ Transcriber = Callable[[Path, Optional[str]],
                        Tuple[Sequence[TimedWord], Optional[str]]]
 
 SOURCE = "whisper"
+# A transcript that is mostly one repeated token is a hallucination (I4:
+# "e e e e ..." on a Portuguese song), not lyrics.
+DEGENERATE_MIN_WORDS = 8
+DEGENERATE_SHARE = 0.6
 REVIEW_REASON = ("lyrics not found on LRCLIB; transcribed with Whisper "
                  "(language {lang}, {origin}); review the text")
 
@@ -81,6 +85,13 @@ def lyrics_from_whisper(job: SongJob, transcriber: Transcriber = whisper_transcr
     words = [w for w in words if w[0].strip()]
     if not words:
         raise RuntimeError("Whisper found no words in the audio")
+    from collections import Counter
+    common = Counter(w[0].lower().strip(".,!?") for w in words).most_common(1)
+    if len(words) >= DEGENERATE_MIN_WORDS and \
+            common[0][1] / len(words) > DEGENERATE_SHARE:
+        raise RuntimeError(
+            f"Whisper transcription is degenerate ('{common[0][0]}' is "
+            f"{common[0][1]} of {len(words)} words); no usable lyrics")
     seg = segment_words([Word(t, s, e) for t, s, e in words], lang)
     lines = []
     for i, part in enumerate(seg.lines):

@@ -49,12 +49,18 @@ def compare(gen, ref, tol=0.5):
             y = min(g, key=lambda y: abs(y - x))
             signed.append(y - x)
     ok = sum(e <= tol for e in errs)
+    # Precision side: each generated line against the nearest reference line
+    # (a coarser or finer segmentation only hurts the recall side above).
+    gerrs = [min(abs(x - y) for y in r) for x in g] if r else []
+    gok = sum(e <= tol for e in gerrs)
     syl = lambda t: max(len(re.findall(r"\S+", " ".join(t))), 0)
     return {
         "gen_lines": len(g), "ref_lines": len(r),
         "median_err": statistics.median(errs) if errs else None,
         "median_signed": statistics.median(signed) if signed else None,
         "pct_ok": 100.0 * ok / len(r) if r else 0.0,
+        "gen_median_err": statistics.median(gerrs) if gerrs else None,
+        "gen_pct_ok": 100.0 * gok / len(g) if g else 0.0,
         "tol": tol,
         "max_gen_words": max((len(t.split()) for t in gt), default=0),
         "ref_relative": rel,

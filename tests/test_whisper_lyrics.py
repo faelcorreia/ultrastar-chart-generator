@@ -141,6 +141,16 @@ class WhisperFallbackTest(unittest.TestCase):
         self.assertEqual(res.status, "failed")
         self.assertIn("no words", res.reason)
 
+    def test_degenerate_transcript_fails(self):
+        sep, _, _ = fake_runners([])
+        words = [("e", i * 0.5, i * 0.5 + 0.4) for i in range(12)]
+        stages = default_stages(self.tmp / "o", lrclib=FakeLrclib(),
+                                separate=sep,
+                                transcriber=lambda p, l: (words, l))
+        res = run_job(self.job("pt", language="pt"), self.tmp / "o", stages)
+        self.assertEqual(res.status, "failed")
+        self.assertIn("degenerate", res.reason)
+
     def test_lrclib_hit_does_not_use_whisper(self):
         from src.model.lyrics import Lyrics
 
