@@ -1,11 +1,13 @@
 """F1: batch CLI. `python -m src.batch.cli lista.csv --audio-dir DIR`."""
 import argparse
 import sys
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.batch.locate import DEFAULT_LIBRARY
+from src.batch.report import REPORT_NAME, BatchReport
 from src.batch.runner import run_batch
-from src.batch.songlist import parse_song_list
+from src.batch.songlist import parse_song_list, song_key
 from src.planner import JobResult, Stage
 
 
@@ -21,6 +23,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="process songs even if already in the library")
     p.add_argument("--force", action="store_true",
                    help="ignore the per-stage cache")
+    p.add_argument("--report", default=None,
+                   help=f"report/state JSON (default: OUTPUT_DIR/{REPORT_NAME})")
+    p.add_argument("--retry-all", action="store_true",
+                   help="reprocess songs even if done/skipped in the report")
     return p
 
 
@@ -36,9 +42,16 @@ def main(argv: Optional[List[str]] = None,
         print(f"[{res.status}] {entry.artist} - {entry.title}: {res.reason}",
               file=sys.stderr)
 
-    return run_batch(entries, args.audio_dir, args.output_dir, stages,
-                     library=args.library, force_existing=args.force_existing,
-                     force=args.force, on_result=show)
+    report = BatchReport(args.report
+                         or Path(args.output_dir) / REPORT_NAME)
+    results = run_batch(entries, args.audio_dir, args.output_dir, stages,
+                        library=args.library,
+                        force_existing=args.force_existing, force=args.force,
+                        on_result=show, report=report,
+                        retry_all=args.retry_all)
+    print(report.summary([song_key(e.artist, e.title) for e in entries]),
+          file=sys.stderr)
+    return results
 
 
 if __name__ == "__main__":
