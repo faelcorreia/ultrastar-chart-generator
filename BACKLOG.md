@@ -128,7 +128,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I1b | Ligar ao planner os estágios reais syllables e write | I1a | Feito (eec4751) |
 | I2 | Ligar B1 (`normalize_audio`), D4 (`reconcile`) e D5 (`sync_validate`) ao plano, com confirmador CTC e estimadores reais | I1 | Feito (86f0c3b) |
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (4fa2a68) |
-| I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | Feito (HASH) — ver `docs/i4-results.md` |
+| I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | Feito (89e110e) — ver `docs/i4-results.md` |
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
 
 Decisões (I): ordem fica a critério do Claude (sugestão: I1, I4 cedo, depois I2, I3). I3: sem letra no LRCLIB, cai no Whisper sozinho e marca a música como "revisar".
