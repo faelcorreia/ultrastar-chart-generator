@@ -223,12 +223,13 @@ def _fail(result: JobResult, reason: str) -> JobResult:
 # -- default stages for the lightweight steps ------------------------------
 def default_stages(output_dir, lrclib=None, musicbrainz=None,
                    probe=None, separate=None, pitches=None,
-                   beats=None) -> Dict[str, Stage]:
-    """Real implementations for normalize, metadata, lyrics, language,
-    alignment, vocals, pitches and beats. `separate`, `pitches` and `beats`
-    replace the heavy analyzers (tests). syllables and write are supplied
-    by the caller (they still live behind the legacy dict API)."""
+                   beats=None, syllables=None, writer=None
+                   ) -> Dict[str, Stage]:
+    """Real implementations for every stage. `separate`, `pitches`,
+    `beats`, `syllables` and `writer` replace the heavy analyzers and the
+    UltraStar writer (tests)."""
     from src.stages.audio_analysis import make_stages
+    from src.stages.song_output import make_stages as make_song_output
     from src.core.language import resolve_language
     from src.readers.metadata import read_metadata
     from src.stages.audio_normalize import normalize_audio
@@ -276,4 +277,5 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
               LANGUAGE: language, ALIGN_WINDOW: align_window,
               ALIGN_PLAIN: align_plain}
     stages.update(make_stages(output_dir, separate, pitches, beats))
+    stages.update(make_song_output(output_dir, syllables, writer))
     return stages

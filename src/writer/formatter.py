@@ -40,7 +40,8 @@ class UltraStarFormatter:
         `lyrics` (timed, in seconds) takes precedence; otherwise
         song["syllables"] is a Lyrics object or a path to the syllables JSON.
         """
-        base_directory = os.path.join(config.OUTPUT_DIR, artist_song)
+        base_directory = os.path.join(
+            getattr(self, "output_dir", config.OUTPUT_DIR), artist_song)
         song = self.songs[artist_song]
         os.makedirs(base_directory, exist_ok=True)
 
