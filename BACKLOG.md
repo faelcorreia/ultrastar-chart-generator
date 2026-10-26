@@ -135,7 +135,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I8 | Português denso no caminho Whisper (22 linhas contra 86 na referência) e Jota Quest (só ruído): exigir letra pura de entrada? | I4 | A refinar |
 | I9 | Investigar Green Day - She (5% das linhas OK): referência diferente ou CTC travando em repetições | I4 | A refinar |
 | I10 | D4 insere refrão copiado com tempo errado (visto na Avril) | I4 | A refinar |
-| I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Feito (HASH) |
+| I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Feito (1d901d2) |
 | I12 | Til (`~`) para nota longa/segurada: quando a voz segura a vogal, a nota continua com `~` em vez de sílaba nova. Testes en/pt/es | I4 | Refinado |
 | I13 | Dessincronização "aleatória" e pausa antes da palavra ser cantada (visto em Pegasus Fantasy, es): geral está ok, mas linhas soltam do áudio. Diagnosticar com `i4_compare.py` por linha | I4 | A refinar |
 
