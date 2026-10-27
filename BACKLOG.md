@@ -138,6 +138,8 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Feito (1d901d2) |
 | I12 | Til (`~`) para nota longa/segurada: quando a voz segura a vogal, a nota continua com `~` em vez de sílaba nova. Testes en/pt/es | I4 | Feito (597b52f) |
 | I13 | Dessincronização "aleatória" e pausa antes da palavra ser cantada (visto em Pegasus Fantasy, es): geral está ok, mas linhas soltam do áudio. Diagnosticar com `i4_compare.py` por linha | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Feito (d1bd158) |
+| I14 | Vocal separado do Jota Quest - O vento saiu mudo (média -84 dB, 0 palavras): investigar a falha na separação de vocal e detectar stem mudo com fallback | I4 | A refinar |
+| I15 | Reavaliar Whisper medium vs small: medium não melhorou o WER no português cantado (Tribalistas 0,973 vs 0,973; Jota Quest 0,929 small vs 0,980 medium) e é 6-7x mais lento | I8 | A refinar |
 
 Decisão (I9): a referência do Green Day está certa (mesmo áudio, correlação com lag 0); o LRCLIB tem deslocamento constante de ~2,4 s e o CTC global erra no começo (o vocal separado fica mudo de 0 a 29 s). Com o Whisper surdo, `sync_validate` ajusta um modelo robusto (RANSAC de offset/deriva, tolerância 1,25 s, ≥30% de acordo) e só confia no CTC da linha se estiver a até 1,5 s do modelo. Green Day 2,7% → 18,9% (precisão 5% → 35%); Avril igual (52%). O restante é o limite do CTC em canto, fora de 0,5 s.
 
