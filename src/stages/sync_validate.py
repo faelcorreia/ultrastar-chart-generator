@@ -20,6 +20,7 @@ only the bad lines. The one that most improves the match on the lines where
 the estimators agree wins; ties go to the simpler one.
 """
 from dataclasses import dataclass, field
+from itertools import combinations
 from difflib import SequenceMatcher
 from pathlib import Path
 from statistics import median
@@ -38,8 +39,18 @@ MIN_GLOBAL_ANCHORS = 3
 # alone stands in for it and the report says so.
 MIN_WHISPER_COVERAGE = 0.3
 MIN_GLOBAL_MATCH = 0.5
+# I9 (CTC-only judging): coarse tolerance for the consensus model, how far an
+# estimate may sit from the model and still be trusted for its line, the share
+# of anchors that must agree, and how a drift must beat a plain offset.
+COARSE_TOL = 1.25
+TRUST_TOL = 1.5
+MIN_MODEL_SHARE = 0.3
+DRIFT_GAIN = 1.15
+MIN_DRIFT_SPAN = 20.0
+DRIFT_RANGE = (0.8, 1.25)
 OK, SHIFTED, UNCERTAIN = "ok", "shifted", "uncertain"
 NONE, OFFSET, DRIFT, LINES = "none", "offset", "drift", "lines"
+ROBUST = "robust"
 
 Estimator = Callable[[Path, Lyrics, str], List[Optional[float]]]
 WhisperWord = Tuple[str, float, float]
@@ -177,6 +188,36 @@ def _fit_line(pairs: List[Tuple[float, float]]) -> Tuple[float, float]:
     return a, b
 
 
+def fit_robust_model(anchors: List[Tuple[float, float]],
+                     tol: float = COARSE_TOL) -> Optional[Tuple[float, float]]:
+    """Consensus fit est = a*src + b that survives most estimates being
+    garbage (RANSAC over offsets, then over line pairs for drift). Returns
+    (a, b) when at least ``MIN_MODEL_SHARE`` of the anchors (and 3) agree
+    within ``tol``; a drift only wins over a plain offset when it explains
+    clearly more anchors."""
+    need = max(MIN_GLOBAL_ANCHORS, MIN_MODEL_SHARE * len(anchors))
+    best_n, best = 0, None
+    for s0, e0 in anchors:
+        inl = [(s, e) for s, e in anchors if abs(e - s - (e0 - s0)) <= tol]
+        if len(inl) > best_n:
+            best_n, best = len(inl), (1.0, median(e - s for s, e in inl))
+    offset_n = best_n
+    for (s1, e1), (s2, e2) in combinations(anchors, 2):
+        if abs(s2 - s1) < MIN_DRIFT_SPAN:
+            continue
+        a = (e2 - e1) / (s2 - s1)
+        if not DRIFT_RANGE[0] <= a <= DRIFT_RANGE[1]:
+            continue
+        b = e1 - a * s1
+        inl = [(s, e) for s, e in anchors if abs(a * s + b - e) <= tol]
+        if len(inl) > max(best_n, offset_n * DRIFT_GAIN):
+            a, b = _fit_line(inl)
+            best_n, best = len(inl), (a, b)
+    if best is None or best_n < need:
+        return None
+    return best
+
+
 def _match(anchors, fn) -> float:
     if not anchors:
         return 0.0
@@ -231,7 +272,30 @@ def validate_sync(
     best_fn = None
     best_lines = None
 
-    if anchors and before < 1.0:
+    # I9: CTC alone is noisy on some sung audio (quiet intro, soft onsets), so
+    # replacing every line by its own estimate would wreck the source's good
+    # relative timing. Fit one robust model first and keep it for the lines
+    # the estimate does not support.
+    robust = None
+    if ctc_only and anchors:
+        model = fit_robust_model(anchors)
+        if model is not None:
+            a, b = model
+            fixed = {i: a * line.start + b
+                     for i, line in enumerate(lyrics.lines)
+                     if line.start is not None}
+            for i, e in enumerate(est):
+                if e is not None and i in fixed \
+                        and abs(e - fixed[i]) <= TRUST_TOL:
+                    fixed[i] = e
+            robust = Correction(
+                ROBUST, offset=b, scale=a, match_before=before,
+                match_after=_match(
+                    [(s, e) for s, e in anchors],
+                    lambda s: a * s + b))
+            best, best_fn, best_lines = robust, None, fixed
+
+    if robust is None and anchors and before < 1.0:
         cands = []
         off = median(e - s for s, e in anchors)
         cands.append((Correction(OFFSET, offset=off),
@@ -257,7 +321,14 @@ def validate_sync(
                                   match_after=after)
                 best_fn, best_lines = None, bad
 
-    if best.kind in (OFFSET, DRIFT):
+    if best.kind == ROBUST:
+        best.lines = sorted(i for i, v in best_lines.items()
+                            if est[i] is not None and v == est[i])
+        corrected = _apply(lyrics, lambda i: (
+            (lambda s, v=best_lines[i]: v) if i in best_lines else None))
+        for i, v in best_lines.items():
+            checks[i].corrected = v
+    elif best.kind in (OFFSET, DRIFT):
         corrected = _apply(lyrics, lambda i: best_fn)
         for c in checks:
             if c.source is not None:

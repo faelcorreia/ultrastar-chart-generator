@@ -4,7 +4,7 @@ from src.core.text_norm import fold_for_compare
 
 from src.model.lyrics import Line, Lyrics
 from src.stages.sync_validate import (
-    DRIFT, LINES, NONE, OFFSET, SHIFTED, UNCERTAIN, OK,
+    DRIFT, LINES, NONE, OFFSET, ROBUST, SHIFTED, UNCERTAIN, OK,
     estimate_from_whisper_words, validate_sync,
 )
 
@@ -161,6 +161,50 @@ class SyncValidateTest(unittest.TestCase):
             words = self._heard(lang, {})
             out = estimate_from_whisper_words(lyr(lang, TRUE), words, lang)
             self.assertEqual(out, sorted(out))
+
+    # I9: CTC alone is garbage on some lines (quiet intro in the stem); the
+    # source's own relative timing must survive there.
+    def test_ctc_only_garbage_lines_keep_the_model(self):
+        for lang in SONGS:
+            src = [t + 2.4 for t in TRUE]
+            ctc = [TRUE[0] - 9.0, TRUE[1] - 14.0, TRUE[2] + 0.6,
+                   TRUE[3] - 0.4, TRUE[4] + 0.3, TRUE[5] + 0.5]
+            r = run(lang, src, w=[None] * 6, c=ctc)
+            self.assertTrue(r.ctc_only)
+            self.assertEqual(r.correction.kind, ROBUST)
+            self.assertEqual(r.status, "review")
+            starts = [l.start for l in r.lyrics.lines]
+            for i in (0, 1):  # garbage estimates are not used
+                self.assertAlmostEqual(starts[i], TRUE[i], delta=0.6)
+            for i in (2, 3, 4, 5):  # supported estimates are used
+                self.assertAlmostEqual(starts[i], ctc[i])
+            self.assertEqual(r.correction.lines, [2, 3, 4, 5])
+            # the line keeps its length when it moves
+            self.assertAlmostEqual(r.lyrics.lines[0].end - starts[0], 5.0)
+
+    def test_ctc_only_robust_drift(self):
+        for lang in SONGS:
+            src = [t * 1.08 for t in TRUE]
+            ctc = [TRUE[0] + 8.0, TRUE[1] + 9.0] + TRUE[2:]
+            r = run(lang, src, w=[None] * 6, c=ctc)
+            self.assertEqual(r.correction.kind, ROBUST)
+            self.assertAlmostEqual(r.correction.scale, 1 / 1.08, places=2)
+            starts = [l.start for l in r.lyrics.lines]
+            for i in range(6):
+                self.assertAlmostEqual(starts[i], TRUE[i], delta=0.3)
+
+    def test_ctc_only_without_consensus_falls_back_to_lines(self):
+        for lang in SONGS:
+            ctc = [t + d for t, d in zip(TRUE, (-9, 7, -4, 12, -15, 5))]
+            r = run(lang, TRUE, w=[None] * 6, c=ctc)
+            self.assertNotEqual(r.correction.kind, ROBUST)
+
+    def test_whisper_and_ctc_agreeing_does_not_use_the_robust_model(self):
+        for lang in SONGS:
+            src = list(TRUE)
+            src[1] += 4
+            r = run(lang, src)
+            self.assertEqual(r.correction.kind, LINES)
 
 
 if __name__ == "__main__":
