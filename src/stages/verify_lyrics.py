@@ -41,7 +41,8 @@ def flag_review(job: SongJob, reason: str) -> None:
     job.extra["review"] = f"{prev}; {reason}" if prev else reason
 
 
-def _analysis_audio(job: SongJob) -> Path:
+def analysis_audio(job: SongJob) -> Path:
+    """The separated vocals when available, else the full mix."""
     if job.vocals_path is not None and Path(job.vocals_path).is_file():
         return Path(job.vocals_path)
     return Path(job.audio_path)
@@ -137,7 +138,7 @@ def make_stages(transcriber=None, aligner=None) -> Dict[str, Callable]:
 
     def reconcile(job: SongJob) -> None:
         lang = job.require_language()
-        audio = _analysis_audio(job)
+        audio = analysis_audio(job)
         words = whisper_words(job, audio, lang)
         rep = reconcile_lyrics(job.lyrics, words, audio, lang,
                                confirmer=make_confirmer(aligner))
@@ -161,7 +162,7 @@ def make_stages(transcriber=None, aligner=None) -> Dict[str, Callable]:
         if not job.lyrics.is_synced:
             return
         lang = job.require_language()
-        audio = _analysis_audio(job)
+        audio = analysis_audio(job)
         words = whisper_words(job, audio, lang)
 
         def whisper_est(a, lyrics, language):

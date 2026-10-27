@@ -246,7 +246,9 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
     from src.core.language import resolve_language
     from src.readers.metadata import read_metadata
     from src.stages.audio_normalize import normalize_audio
+    from src.stages.verify_lyrics import analysis_audio
     from src.stages.verify_lyrics import make_stages as make_verify
+    from src.stages.word_alignment import ctc_window_aligner
     from src.stages.plain_alignment import align_plain_lyrics
     from src.stages.window_alignment import align_in_windows
     from src.stages.whisper_lyrics import (
@@ -282,8 +284,13 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
             label=f"'{job.artist} - {job.title}'")
 
     def align_window(job):
-        res = align_in_windows(job.lyrics, job.audio_path,
-                               job.require_language())
+        # I13: CTC on the full mix put words seconds off wherever the
+        # instruments masked the voice; the vocals stem keeps them on the audio.
+        voice = analysis_audio(job)
+        mix = Path(job.audio_path)
+        res = align_in_windows(job.lyrics, voice, job.require_language(),
+                               aligner=aligner or ctc_window_aligner,
+                               alt_audio_path=mix if voice != mix else None)
         job.lyrics = res.lyrics
         if res.failed_lines:
             msg = f"alignment failed on lines {res.failed_lines}"
@@ -291,8 +298,9 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
             job.extra["review"] = f"{prev}; {msg}" if prev else msg
 
     def align_plain(job):
-        job.lyrics = align_plain_lyrics(job.lyrics, job.audio_path,
-                                        job.require_language())
+        job.lyrics = align_plain_lyrics(job.lyrics, analysis_audio(job),
+                                        job.require_language(),
+                                        aligner=aligner or ctc_window_aligner)
 
     stages = {NORMALIZE: normalize, METADATA: metadata, LYRICS: lyrics,
               LANGUAGE: language, ALIGN_WINDOW: align_window,

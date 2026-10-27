@@ -46,6 +46,20 @@ def line_windows(lyrics: Lyrics, audio_duration: Optional[float] = None,
     return windows
 
 
+def _closer_to_start(bounds, aligner, alt_audio, words, lang, window):
+    """``bounds`` or the same line aligned on ``alt_audio``, whichever starts
+    nearer the window start (the line's own time)."""
+    try:
+        alt = aligner(alt_audio, words, lang, window)
+    except Exception:
+        return bounds
+    if len(alt) != len(words):
+        return bounds
+    if abs(alt[0][0] - window[0]) < abs(bounds[0][0] - window[0]):
+        return alt
+    return bounds
+
+
 def align_in_windows(
     lyrics: Lyrics,
     audio_path: Path,
@@ -54,11 +68,18 @@ def align_in_windows(
     syllabifier: Optional[Syllabifier] = pyphen_syllabifier,
     syllable_refiner: Optional[Callable[[Line, str], Line]] = None,
     audio_duration: Optional[float] = None,
+    alt_audio_path: Optional[Path] = None,
 ) -> WindowAlignment:
     """Return a new Lyrics with word/syllable times from per-line CTC.
 
     A line whose alignment fails keeps even timing inside its window and its
     index is reported in ``failed_lines``.
+
+    ``audio_path`` should be the separated vocals. When ``alt_audio_path``
+    (the full mix) is also given, each line is aligned on both and the result
+    whose first word lands closer to the line's own start time wins: the
+    stem can lose a soft onset the mix still carries, and the mix can place
+    a line seconds off where instruments mask the voice (I13).
     """
     lang = normalize_language(language or lyrics.language)
     if not lyrics.is_synced:
@@ -76,6 +97,10 @@ def align_in_windows(
             bounds = aligner(Path(audio_path), words, lang, window)
             if len(bounds) != len(words):
                 raise RuntimeError("word count mismatch")
+            if alt_audio_path is not None:
+                bounds = _closer_to_start(
+                    bounds, aligner, Path(alt_audio_path), words, lang,
+                    window)
         except Exception:
             failed.append(i)
             bounds = even_bounds(len(words), *window)
