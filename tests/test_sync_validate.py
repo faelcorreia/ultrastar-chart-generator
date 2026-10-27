@@ -124,6 +124,44 @@ class SyncValidateTest(unittest.TestCase):
             out = estimate_from_whisper_words(lyr(lang, TRUE), words, lang)
             self.assertEqual(out, TRUE)
 
+    def _heard(self, lang, mangle):
+        words = []
+        for i, (t, text) in enumerate(zip(TRUE, SONGS[lang])):
+            toks = fold_for_compare(text, lang).split()
+            if i in mangle:
+                toks = mangle[i](toks)
+            for k, w in enumerate(toks):
+                words.append((w, t + k * 0.4, t + k * 0.4 + 0.3))
+        return words
+
+    def test_fuzzy_match_finds_misheard_lines(self):
+        # Whisper mishears a letter or two per word, drops or splits words.
+        def typo(toks):
+            return [w[:-1] + "x" if len(w) > 3 else w for w in toks]
+
+        def split_merge(toks):
+            return [toks[0] + toks[1]] + toks[2:]
+        for lang in SONGS:
+            words = self._heard(lang, {0: typo, 2: split_merge, 4: typo})
+            exact = estimate_from_whisper_words(
+                lyr(lang, TRUE), words, lang, cutoff=1.0)
+            fuzzy = estimate_from_whisper_words(lyr(lang, TRUE), words, lang)
+            self.assertIsNone(exact[0])
+            self.assertEqual(fuzzy, TRUE)
+
+    def test_fuzzy_does_not_match_unrelated_text(self):
+        for lang in SONGS:
+            words = [(w, 5.0 + k, 5.3 + k) for k, w in enumerate(
+                "zzz qqq www kkk jjj hhh".split())]
+            out = estimate_from_whisper_words(lyr(lang, TRUE), words, lang)
+            self.assertEqual(out, [None] * 6)
+
+    def test_fuzzy_keeps_line_order(self):
+        for lang in SONGS:
+            words = self._heard(lang, {})
+            out = estimate_from_whisper_words(lyr(lang, TRUE), words, lang)
+            self.assertEqual(out, sorted(out))
+
 
 if __name__ == "__main__":
     unittest.main()

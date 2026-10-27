@@ -20,6 +20,7 @@ only the bad lines. The one that most improves the match on the lines where
 the estimators agree wins; ties go to the simpler one.
 """
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 from statistics import median
 from typing import Callable, List, Optional, Sequence, Tuple
@@ -82,27 +83,66 @@ class SyncReport:
         return [c for c in self.checks if c.status == status]
 
 
+# A window of Whisper words counts as the line's opening when its text is at
+# least this similar (difflib ratio) to the line's first words. Whisper
+# mishears sung words ("knocking on the heaven door"), so an exact match
+# finds almost nothing there (I6).
+FUZZY_CUTOFF = 0.72
+FIRST_WORD_CUTOFF = 0.5
+LOOKAHEAD = 3
+
+
+def _similarity(a: str, b: str) -> float:
+    return SequenceMatcher(None, a, b, autojunk=False).ratio()
+
+
 def estimate_from_whisper_words(lyrics: Lyrics, words: Sequence[WhisperWord],
                                 language: str, probe: int = 3,
+                                cutoff: float = FUZZY_CUTOFF,
                                 ) -> List[Optional[float]]:
-    """Whisper-based estimator helper: the start of the first run of up to
-    ``probe`` words of each line found in order in the Whisper words."""
+    """Whisper-based estimator helper: the start of the first run of Whisper
+    words, in order, that approximately matches the first ``probe`` words of
+    each line (``cutoff`` = 1.0 gives the old exact matcher)."""
     lang = normalize_language(language)
     toks = [fold_for_compare(w[0], lang) for w in words]
     out: List[Optional[float]] = []
     cursor = 0
     for line in lyrics.lines:
         lw = fold_for_compare(line.text, lang).split()[:probe]
-        found = None
-        for i in range(cursor, len(toks) - len(lw) + 1):
-            if lw and toks[i:i + len(lw)] == lw:
-                found = i
+        target = " ".join(lw)
+        found, size = None, len(lw)
+        # Window of the same length, or one word shorter/longer (Whisper
+        # splits and merges words).
+        sizes = sorted({max(1, len(lw) - 1), len(lw), len(lw) + 1})
+
+        def best_at(i):
+            # The window must start on a word like the line's first word, so
+            # a window sliding over the end of the previous line is no match.
+            if _similarity(lw[0], toks[i]) < FIRST_WORD_CUTOFF:
+                return 0.0, 0
+            top, top_n = 0.0, 0
+            for n in sizes:
+                if i + n <= len(toks):
+                    sc = _similarity(target, " ".join(toks[i:i + n]))
+                    if sc > top:
+                        top, top_n = sc, n
+            return top, top_n
+
+        for i in range(cursor, len(toks)) if lw else ():
+            best, n = best_at(i)
+            if best >= cutoff:
+                # Take the best start among the next few words.
+                for j in range(i + 1, min(i + LOOKAHEAD, len(toks))):
+                    sc, nj = best_at(j)
+                    if sc > best + 1e-9:
+                        i, best, n = j, sc, nj
+                found, size = i, n
                 break
         if found is None:
             out.append(None)
         else:
             out.append(words[found][1])
-            cursor = found + len(lw)
+            cursor = found + size
     return out
 
 
