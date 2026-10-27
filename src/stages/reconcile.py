@@ -128,6 +128,7 @@ def reconcile_lyrics(
     min_gap_words: int = 5,
     similarity: float = 0.6,
     confirm_threshold: float = 0.5,
+    max_sec_per_word: float = 2.0,
 ) -> ReconcileReport:
     lang = normalize_language(language or lyrics.language)
     texts = [l.text for l in lyrics.lines]
@@ -191,9 +192,16 @@ def reconcile_lyrics(
                                 " / ".join(span), window, after,
                                 note="moved to where Whisper heard it"))
         else:
-            inserts.append((after, len(inserts), span))
             confirmed = None
-            if confirmer is not None and audio_path is not None:
+            span_words = [w for t in span for w in t.split()]
+            too_long = (window[1] - window[0]) > max_sec_per_word * max(
+                len(span_words), 1)
+            if too_long:
+                # The gap is much longer than the chorus could take: it is
+                # other material, and spreading the copy over it would give
+                # the lines wrong times (I10, Avril).
+                confirmed = False
+            elif confirmer is not None and audio_path is not None:
                 try:
                     score = float(confirmer(
                         audio_path, [w for t in span for w in t.split()],
@@ -201,13 +209,20 @@ def reconcile_lyrics(
                 except Exception:
                     score = 0.0
                 confirmed = score >= confirm_threshold
+            # I10: only a CTC-confirmed chorus is inserted (with the window
+            # as its time); otherwise it is flagged and left out, because a
+            # copy with a wrong time hurts the sync more than a missing one.
+            if confirmed:
+                inserts.append((after, len(inserts), span))
             issues.append(Issue(
                 MISSING_CHORUS, list(range(a, b)), " / ".join(span), window,
                 after, confirmed, flagged=not confirmed,
-                note="copied from previous chorus" + (
-                    "" if confirmed else
-                    "; CTC did not confirm" if confirmed is False else
-                    "; not confirmed (no CTC)")))
+                note=("copied from previous chorus" if confirmed else
+                      "not inserted: audio window too long for the chorus"
+                      if too_long else
+                      "not inserted: CTC did not confirm the chorus"
+                      if confirmed is False else
+                      "not inserted: not confirmed (no CTC)")))
 
     for a, b in _runs(unmatched_line):
         if all(x in removed for x in range(a, b)):
@@ -244,7 +259,7 @@ def reconcile_lyrics(
     fixed = Lyrics(lines=new_lines, language=lang, source=lyrics.source)
     decisions = [
         Decision("missing_chorus",
-                 "copy previous chorus, confirm with CTC on the audio window",
+                 "copy previous chorus, insert only if CTC confirms the audio window; else flag",
                  "; ".join(f"lines {i.lines}: "
                            f"{'confirmed' if i.confirmed else 'flagged'}"
                            for i in issues if i.kind == MISSING_CHORUS)

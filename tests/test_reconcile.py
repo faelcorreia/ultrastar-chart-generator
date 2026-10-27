@@ -67,16 +67,37 @@ class ReconcileTest(unittest.TestCase):
                 self.assertEqual(calls[0][1], lang)
                 self.assertEqual(r.status, "ok")
 
-    def test_unconfirmed_chorus_flagged(self):
-        _, v = SONGS["pt"]
-        lyr = v
-        heard = v + v[2:4]
-        r = reconcile_lyrics(Lyrics.from_text("\n".join(lyr)), whisper(heard),
-                             Path("a.wav"), "pt", lambda *a: 0.1)
-        iss = r.issues_of(MISSING_CHORUS)[0]
-        self.assertFalse(iss.confirmed)
-        self.assertTrue(iss.flagged)
-        self.assertEqual(r.status, "review")
+    def test_unconfirmed_chorus_flagged_and_not_inserted(self):
+        for lang, (_, v) in SONGS.items():
+            for conf in (lambda *a: 0.1, None):
+                with self.subTest(lang=lang, confirmer=conf is not None):
+                    heard = v + v[2:4]
+                    r = reconcile_lyrics(
+                        Lyrics.from_text("\n".join(v)), whisper(heard),
+                        Path("a.wav"), lang, conf)
+                    iss = r.issues_of(MISSING_CHORUS)[0]
+                    self.assertFalse(iss.confirmed)
+                    self.assertTrue(iss.flagged)
+                    self.assertEqual([l.text for l in r.lyrics.lines], v)
+                    self.assertEqual(r.status, "review")
+
+    def test_chorus_with_overlong_window_not_inserted(self):
+        # The gap spans far more audio than the chorus needs (other material
+        # in between): even a "confirming" CTC must not get the copy inserted.
+        for lang, (_, v) in SONGS.items():
+            with self.subTest(lang=lang):
+                heard = v + v[2:4]
+                words = whisper(heard)
+                n = len(words)
+                k = n - len(" ".join(v[2:4]).split())
+                words = [(t, s, e) if i < k else (t, s + 100.0, e + 150.0)
+                         for i, (t, s, e) in enumerate(words)]
+                r = reconcile_lyrics(
+                    Lyrics.from_text("\n".join(v)), words, Path("a.wav"),
+                    lang, lambda *a: 0.9)
+                iss = r.issues_of(MISSING_CHORUS)[0]
+                self.assertTrue(iss.flagged)
+                self.assertEqual([l.text for l in r.lyrics.lines], v)
 
     def test_displaced_verse_moved(self):
         for lang, (_, v) in SONGS.items():
