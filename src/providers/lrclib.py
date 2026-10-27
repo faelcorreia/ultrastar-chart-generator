@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 from src.model import Line, Lyrics
 from src.providers.http import HttpGet, urllib_get
+from src.providers.name_clean import lookup_variants
 
 BASE_URL = "https://lrclib.net"
 DURATION_TOLERANCE = 3.0
@@ -67,7 +68,12 @@ class LrclibClient:
         cached = self._cache_read(key)
         if cached is not None:
             return cached.get("result") and LrclibResult(**cached["result"])
-        result = self._lookup(artist, title, album, duration)
+        result = None
+        # I7: exact name first, then cleaned/looser variants in cascade
+        for v_artist, v_title in lookup_variants(artist, title):
+            result = self._lookup(v_artist, v_title, album, duration)
+            if result is not None:
+                break
         self._cache_write(key, result)
         return result
 

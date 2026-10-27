@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
 from src.model import SongJob
+from src.providers.name_clean import strip_number_prefix
 
 Probe = Callable[[Path], Optional[dict]]
 CoverExtractor = Callable[[Path, Path], bool]
@@ -18,6 +19,8 @@ CoverExtractor = Callable[[Path, Path], bool]
 def parse_filename(path) -> Tuple[Optional[str], Optional[str]]:
     """Split `Artista - Título`; a leading track number is ignored."""
     stem = Path(path).stem.strip()
+    # "01. Artist - Title" / "01 Artist - Title" / "01-Artist - Title"
+    stem = strip_number_prefix(stem) or stem
     parts = [p.strip() for p in re.split(r"\s+-\s+|\s+–\s+", stem)]
     if len(parts) >= 3 and re.fullmatch(r"\d{1,3}\.?", parts[0]):
         parts = parts[1:]
