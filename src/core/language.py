@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from src.core.whisper_model import WHISPER_MODEL
+
 SUPPORTED = ("en", "pt", "es")
 _ALIASES = {"eng": "en", "por": "pt", "spa": "es", "esp": "es", "ptbr": "pt"}
 
@@ -29,7 +31,7 @@ def tag_language(audio_path) -> str | None:
     return normalize_code(_tags(info).get("language"))
 
 
-def detect_language(audio_path, model_size: str = "small") -> str | None:
+def detect_language(audio_path, model_size: str = WHISPER_MODEL) -> str | None:
     """Detect the language with Whisper (loads the model lazily)."""
     from faster_whisper import WhisperModel
     model = WhisperModel(model_size, device="cpu", compute_type="int8")

@@ -1,4 +1,5 @@
 from src.core.audio_processor import AudioProcessor
+from src.core.whisper_model import WHISPER_MODEL
 import json
 from faster_whisper import WhisperModel
 
@@ -8,7 +9,7 @@ class WordsTranscriber(AudioProcessor):
     def __init__(
         self,
         songs: dict,
-        model_size: str = "small",
+        model_size: str = WHISPER_MODEL,
     ):
         super().__init__(songs)
         self.model_size = model_size

@@ -1,4 +1,4 @@
-# Whisper model comparison (small / medium / large)
+# Whisper model comparison (small / medium)
 
 Report only. The pipeline default model is unchanged; decide after reading
 the numbers.
@@ -20,7 +20,7 @@ the numbers.
 
    ```
    .venv/bin/python scripts/compare_whisper_models.py manifest.json \
-       --models small medium large-v3 --out docs/whisper-results.md
+       --models small medium --out docs/whisper-results.md
    ```
 
 The script prints and optionally saves a table with word error rate (WER),
@@ -35,4 +35,17 @@ compare time on the same machine (CPU, int8).
 
 ## Results
 
-_Not measured yet._
+Measured 2026-10-27 (CPU 8 cores, int8, full mix, language pt, reference =
+LRCLIB plain lyrics; script defaults, no VAD):
+
+| model | audio | WER | time (s) |
+|---|---|---|---|
+| small | Tribalistas - Ja sei namorar (dense pt) | 0.973 | 37.2 |
+| small | Jota Quest - O vento | 0.929 | 43.0 |
+| medium | Tribalistas - Ja sei namorar (dense pt) | 0.973 | 245.4 |
+| medium | Jota Quest - O vento | 0.980 | 294.7 |
+
+Both models fail on sung Portuguese (WER near 1.0, repetition loops); medium
+is 6-7x slower with no gain here. The separated vocal stems were worse: the
+Jota Quest stem is silent (mean -84 dB, 0 words) and Tribalistas looped one
+sentence. Decision (I8) stays: medium only, lyrics strongly recommended.

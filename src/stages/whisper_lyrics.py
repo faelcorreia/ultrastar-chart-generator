@@ -8,12 +8,14 @@ because transcribed lyrics are never fully trustworthy.
 The language comes from the job (list/tags) or, failing that, from Whisper's
 own detection; it is never defaulted. Unsupported or missing -> LanguageError.
 """
+import sys
 from pathlib import Path
 from typing import Callable, List, Optional, Sequence, Tuple
 
 from src.core.language import (
     SUPPORTED, LanguageError, normalize_code, tag_language)
 from src.core.text_norm import minimal_case
+from src.core.whisper_model import WHISPER_MODEL
 from src.model.lyrics import Line, Lyrics
 from src.model.song_job import SongJob
 from src.segmentation import Word, segment_words
@@ -28,12 +30,31 @@ SOURCE = "whisper"
 # "e e e e ..." on a Portuguese song), not lyrics.
 DEGENERATE_MIN_WORDS = 8
 DEGENERATE_SHARE = 0.6
+NO_LYRICS_WARNING = (
+    "WARNING: no lyrics were provided, so the words come from Whisper "
+    f"({WHISPER_MODEL}); providing the lyrics is STRONGLY RECOMMENDED "
+    "(much better quality)")
+# Lines should cover at least this share of the song (or have at least
+# LOW_COVERAGE_MIN_LINES lines), else the transcript is flagged as thin.
+LOW_COVERAGE_SHARE = 0.25
+LOW_COVERAGE_MIN_LINES = 4
+LOW_COVERAGE_REASON = ("low line coverage: {lines} line(s) cover "
+                       "{share:.0%} of the song")
 REVIEW_REASON = ("lyrics not found on LRCLIB; transcribed with Whisper "
-                 "(language {lang}, {origin}); review the text")
+                 "(language {lang}, {origin}); review the text. "
+                 + NO_LYRICS_WARNING)
+
+
+def line_coverage(lines: Sequence[Line], duration: Optional[float]
+                  ) -> Optional[float]:
+    """Share of the song duration covered by the transcribed lines."""
+    if not duration or duration <= 0:
+        return None
+    return min(1.0, sum(max(0.0, l.end - l.start) for l in lines) / duration)
 
 
 def whisper_transcriber(audio_path, language: Optional[str],
-                        model_size: str = "small"):
+                        model_size: str = WHISPER_MODEL):
     """Default transcriber (loads faster-whisper lazily)."""
     from faster_whisper import WhisperModel
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
@@ -101,4 +122,12 @@ def lyrics_from_whisper(job: SongJob, transcriber: Transcriber = whisper_transcr
                           stanza_break_before=i in seg.stanza_starts))
     job.sources["lyrics"] = SOURCE
     job.extra["review"] = REVIEW_REASON.format(lang=lang, origin=origin)
+    job.note(NO_LYRICS_WARNING)
+    print(f"[WARN] {label}: {NO_LYRICS_WARNING}", file=sys.stderr)
+    share = line_coverage(lines, job.duration)
+    low = len(lines) < LOW_COVERAGE_MIN_LINES or (
+        share is not None and share < LOW_COVERAGE_SHARE)
+    if low:
+        job.extra["review"] += "; " + LOW_COVERAGE_REASON.format(
+            lines=len(lines), share=share or 0.0)
     return Lyrics(lines=lines, language=lang, source=SOURCE)

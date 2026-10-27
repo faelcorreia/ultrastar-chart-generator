@@ -102,6 +102,46 @@ class WhisperFallbackTest(unittest.TestCase):
             self.assertEqual(
                 BatchReport(out / "report.json").get("k")["status"], REVIEW)
 
+    def test_no_lyrics_warns_recommending_lyrics(self):
+        for lang in SONGS:
+            job = self.job(lang, language=lang)
+            lyrics_from_whisper(job, lambda p, l, lang=lang: (timed(lang), lang))
+            self.assertIn("STRONGLY RECOMMENDED", job.extra["review"])
+            self.assertIn("medium", job.extra["review"])
+            self.assertTrue(any("providing the lyrics" in n
+                                for n in job.notes))
+
+    def test_low_line_coverage_is_flagged_for_review(self):
+        for lang in SONGS:
+            job = self.job(lang, language=lang)
+            job.duration = 600.0  # 3 short lines in 10 minutes
+            lyrics_from_whisper(job, lambda p, l, lang=lang: (timed(lang), lang))
+            self.assertIn("low line coverage", job.extra["review"])
+            self.assertIn("review", job.extra["review"])
+
+    def test_good_coverage_is_not_flagged_as_low(self):
+        words = []
+        for i in range(6):  # six dense lines
+            for k in range(4):
+                t = i * 6.0 + k * 1.2
+                words.append((f"palabra{k}", t, t + 1.0))
+        job = self.job("es", language="es")
+        job.duration = 36.0
+        lyrics_from_whisper(job, lambda p, l: (words, "es"))
+        self.assertNotIn("low line coverage", job.extra["review"])
+        self.assertIn("STRONGLY RECOMMENDED", job.extra["review"])
+
+    def test_single_whisper_model_is_medium(self):
+        import inspect
+        from src.core.language import detect_language
+        from src.core.whisper_model import WHISPER_MODEL
+        from src.stages.whisper_lyrics import whisper_transcriber
+        self.assertEqual(WHISPER_MODEL, "medium")
+        for fn in (whisper_transcriber, detect_language):
+            self.assertEqual(
+                inspect.signature(fn).parameters["model_size"].default,
+                "medium")
+
     def test_language_detected_by_whisper_is_noted(self):
         for lang in SONGS:
             job = self.job(lang)

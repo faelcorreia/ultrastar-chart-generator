@@ -6,7 +6,7 @@ Objetivo: gerar karaokê UltraStar a partir de qualquer entrada (só MP3, MP3+ca
 
 - Sessão com no máximo ~65k de contexto. Ao abrir e dizer "continuar":
   1. Ler este arquivo.
-  2. Para cada fatia **Refinado** com dependências concluídas, disparar um subagent (uma fatia por subagent, uma tacada) até o limite do contexto.
+  2. Para cada fatia **Refinado** com dependências concluídas, disparar o subagent `implementador` (Haiku; uma fatia por subagent, uma tacada) até o limite do contexto. A sessão principal (Sonnet) planeja e fecha; o `revisor` (Opus) só entra quando o Rafael pedir revisão, nunca como padrão.
   3. Fatias **A refinar** não vão para subagent: apresentar as perguntas abertas ao Rafael e esperar a decisão dele.
   4. Ao concluir, marcar **Feito** aqui (com o hash do commit) e registrar decisões novas.
 - Status: `A refinar` → `Refinado` (só o Rafael move para cá) → `Feito`.
@@ -159,3 +159,5 @@ Decisões (poll, 2026-10-26): I1 dividida em I1a/I1b. I4: Rafael indica os arqui
 Decisões (refino, 2026-10-26): todas as fatias I6-I10, I13 refinadas pelo Rafael. Aceite de qualidade = métrica no `i4_compare`. Ordem: I13, I6, I9, I10, I8, I7. Máquina: CPU 8 núcleos, 39 GB RAM, Radeon sem CUDA (Whisper só em CPU).
 
 Decisão (I8, 2026-10-26): só Whisper medium (CPU int8); letra de entrada fortemente recomendada, com aviso.
+
+Decisão (I8): `WHISPER_MODEL = "medium"` (`src/core/whisper_model.py`) é o único modelo (transcrição, detecção de idioma, checagem de sílabas); `large-v3` removido do script/docs. Sem letra, o caminho Whisper agora avisa "providing the lyrics is STRONGLY RECOMMENDED" (motivo do relatório "revisar", nota do job, stderr da CLI) e acrescenta "low line coverage" ao motivo de revisão quando as linhas cobrem <25% da duração ou são <4. Medição (`compare_whisper_models.py`, mix completo, pt, WER vs LRCLIB, CPU int8): Tribalistas small 0,973 / medium 0,973 (37 s / 245 s); Jota Quest small 0,929 / medium 0,980 (43 s / 295 s). Ambos falham em canto (WER ~1, laços de repetição) e medium é 6-7x mais lento sem ganho aqui; o stem vocal do Jota Quest está mudo (-84 dB). Mantida a decisão do Rafael (medium); reavaliar se o custo pesar.

@@ -4,6 +4,7 @@ from src.core.syllables_aligners import AlignersMixin
 from src.core.syllables_whisper import WhisperCheckMixin
 from src.core.syllables_parse import SyllabifyMixin
 from src.core.syllables_validate import ValidationMixin
+from src.core.whisper_model import WHISPER_MODEL
 import json
 import os
 import re
@@ -42,7 +43,7 @@ class SyllablesTranscriber(
         acoustic_model: str | None = None,
         dictionary: str | None = None,
         g2p: str | None = None,
-        whisper_model: str = "small",
+        whisper_model: str = WHISPER_MODEL,
     ):
         super().__init__(songs)
         self.acoustic_model = acoustic_model

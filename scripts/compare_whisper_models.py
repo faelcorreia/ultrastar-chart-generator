@@ -7,7 +7,7 @@ when you run it (faster-whisper fetches them on first use).
 Manifest JSON: [{"language": "en", "audio": "a.mp3", "reference": "a.txt"}, ...]
 
     .venv/bin/python scripts/compare_whisper_models.py manifest.json \
-        --models small medium large-v3 --out docs/whisper-results.md
+        --models small medium --out docs/whisper-results.md
 """
 import argparse
 import json
@@ -44,7 +44,7 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("manifest")
     ap.add_argument("--models", nargs="+",
-                    default=["small", "medium", "large-v3"])
+                    default=["small", "medium"])
     ap.add_argument("--out", help="write the Markdown table here")
     args = ap.parse_args(argv)
 
