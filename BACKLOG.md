@@ -132,7 +132,7 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
 | I6 | Matcher aproximado (fuzzy) no D5 no lugar do prefixo exato de 3 palavras, para letra mal ouvida pelo Whisper. Medir antes/depois com `scripts/i4_compare.py` | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
 | I7 | Busca de título no LRCLIB tolerante a prefixos/variações (ex.: "12 - Tribalistas - Já Sei Namorar"): limpar o nome (prefixo numérico, tags, variações em cascata). Testes en/pt/es | I4 | Refinado |
-| I8 | Português denso no caminho Whisper (22 linhas contra 86 na referência) e Jota Quest (só ruído): testar Whisper medium (já baixado) e large-v3 (CPU int8, ~3 GB, baixar para Dados/LLM) com `scripts/compare_whisper_models.py` e medir cobertura de linhas no `i4_compare`; se ainda ruim, marcar "revisar". Testes en/pt/es | I4 | Refinado |
+| I8 | Whisper medium como único modelo do caminho Whisper (sem large-v3). Quando não há letra, avisar claramente na UI/CLI/relatório que fornecer a letra é fortemente recomendado (qualidade muito melhor) e marcar "revisar" se a cobertura de linhas for baixa. Medir small vs medium com `scripts/compare_whisper_models.py` no português denso e no Jota Quest. Testes en/pt/es | I4 | Refinado |
 | I9 | Investigar Green Day - She (5% das linhas OK): referência diferente ou CTC travando em repetições | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
 | I10 | D4 insere refrão copiado com tempo errado (visto na Avril) | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
 | I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Feito (1d901d2) |
@@ -153,3 +153,5 @@ Feedback do Rafael ao ouvir a I4 no UltraStar Play (2026-10-26): Pegasus Fantasy
 Decisões (poll, 2026-10-26): I1 dividida em I1a/I1b. I4: Rafael indica os arquivos de áudio (segue A refinar até lá). I5 (Refinado): fonte principal = pausas do vocal, com pontuação e repetição de refrão como apoio; limite de 12 sílabas por linha, configurável; critério verificável: nenhuma linha acima do limite e quebra em pausas longas; testes em en/pt/es.
 
 Decisões (refino, 2026-10-26): todas as fatias I6-I10, I13 refinadas pelo Rafael. Aceite de qualidade = métrica no `i4_compare`. Ordem: I13, I6, I9, I10, I8, I7. Máquina: CPU 8 núcleos, 39 GB RAM, Radeon sem CUDA (Whisper só em CPU).
+
+Decisão (I8, 2026-10-26): só Whisper medium (CPU int8); letra de entrada fortemente recomendada, com aviso.
