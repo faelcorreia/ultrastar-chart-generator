@@ -130,14 +130,14 @@ Todas as fatias acima foram testadas só com fakes. Falta ligar tudo de ponta a 
 | I3 | Caminho Whisper quando o LRCLIB não acha letra (hoje o job falha). Aceite: LRCLIB sem resultado → Whisper transcreve → segmenta com I5 → grava com status "revisar" e motivo no relatório; testes com fakes em en/pt/es | I1a, I1b, I5 | Feito (4fa2a68) |
 | I4 | Rodar de verdade com áudio real em en/pt/es e registrar os resultados | I1 | Feito (89e110e) — ver `docs/i4-results.md` |
 | I5 | Segmentação em versos e estrofes (pausas do vocal, pontuação, refrão, máx. 12 sílabas) | I1 | Feito (b0b417e) |
-| I6 | Matcher aproximado (fuzzy) no D5 no lugar do prefixo exato de 3 palavras, para letra mal ouvida pelo Whisper. Medir antes/depois com `scripts/i4_compare.py` | I4 | A refinar |
-| I7 | Busca de título no LRCLIB tolerante a prefixos/variações (ex.: "12 - Tribalistas - Já Sei Namorar") | I4 | A refinar |
-| I8 | Português denso no caminho Whisper (22 linhas contra 86 na referência) e Jota Quest (só ruído): exigir letra pura de entrada? | I4 | A refinar |
-| I9 | Investigar Green Day - She (5% das linhas OK): referência diferente ou CTC travando em repetições | I4 | A refinar |
-| I10 | D4 insere refrão copiado com tempo errado (visto na Avril) | I4 | A refinar |
+| I6 | Matcher aproximado (fuzzy) no D5 no lugar do prefixo exato de 3 palavras, para letra mal ouvida pelo Whisper. Medir antes/depois com `scripts/i4_compare.py` | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
+| I7 | Busca de título no LRCLIB tolerante a prefixos/variações (ex.: "12 - Tribalistas - Já Sei Namorar"): limpar o nome (prefixo numérico, tags, variações em cascata). Testes en/pt/es | I4 | Refinado |
+| I8 | Português denso no caminho Whisper (22 linhas contra 86 na referência) e Jota Quest (só ruído): testar Whisper medium (já baixado) e large-v3 (CPU int8, ~3 GB, baixar para Dados/LLM) com `scripts/compare_whisper_models.py` e medir cobertura de linhas no `i4_compare`; se ainda ruim, marcar "revisar". Testes en/pt/es | I4 | Refinado |
+| I9 | Investigar Green Day - She (5% das linhas OK): referência diferente ou CTC travando em repetições | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
+| I10 | D4 insere refrão copiado com tempo errado (visto na Avril) | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
 | I11 | Capitalização mínima: maiúscula só no início de cada verso, resto minúsculo (exceto "I" em inglês); não corrigir ortografia/gramática (grafia artística é válida). Testes en/pt/es | I4 | Feito (1d901d2) |
 | I12 | Til (`~`) para nota longa/segurada: quando a voz segura a vogal, a nota continua com `~` em vez de sílaba nova. Testes en/pt/es | I4 | Feito (597b52f) |
-| I13 | Dessincronização "aleatória" e pausa antes da palavra ser cantada (visto em Pegasus Fantasy, es): geral está ok, mas linhas soltam do áudio. Diagnosticar com `i4_compare.py` por linha | I4 | A refinar |
+| I13 | Dessincronização "aleatória" e pausa antes da palavra ser cantada (visto em Pegasus Fantasy, es): geral está ok, mas linhas soltam do áudio. Diagnosticar com `i4_compare.py` por linha | I4 Aceite: métrica melhor que antes no `scripts/i4_compare.py` sobre o lote do sdcard, sem regressão nas demais músicas; testes en/pt/es. | Refinado |
 
 Decisão (I11): `minimal_case` (`src/core/text_norm.py`) aplicada só ao caminho Whisper (`whisper_lyrics`); letra pura/LRC mantém a caixa original para não desfigurar nomes próprios.
 
@@ -151,3 +151,5 @@ Decisões (I2, 2026-10-26): estimadores reais = Whisper + CTC/MMS no vocal separ
 Feedback do Rafael ao ouvir a I4 no UltraStar Play (2026-10-26): Pegasus Fantasy ok mas pouco alinhada, com pausa em palavra ainda não cantada e dessincronia ocasional; falta controle de maiúsculas/minúsculas (sem corrigir ortografia, pois grafia artística existe); quer o `~` de volta para nota longa. Pastas de teste: `/run/media/ghost/Dados/ultrastar-i4-ouvir` (já em SongDirs do UltraStar Play; backup `Settings.json.bak-i4`). Regra de disco: modelos em `/run/media/ghost/Dados/LLM/`.
 
 Decisões (poll, 2026-10-26): I1 dividida em I1a/I1b. I4: Rafael indica os arquivos de áudio (segue A refinar até lá). I5 (Refinado): fonte principal = pausas do vocal, com pontuação e repetição de refrão como apoio; limite de 12 sílabas por linha, configurável; critério verificável: nenhuma linha acima do limite e quebra em pausas longas; testes em en/pt/es.
+
+Decisões (refino, 2026-10-26): todas as fatias I6-I10, I13 refinadas pelo Rafael. Aceite de qualidade = métrica no `i4_compare`. Ordem: I13, I6, I9, I10, I8, I7. Máquina: CPU 8 núcleos, 39 GB RAM, Radeon sem CUDA (Whisper só em CPU).
