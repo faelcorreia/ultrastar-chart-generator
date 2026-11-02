@@ -63,6 +63,33 @@ The language tag selects both the hyphenation dictionary and the MFA models:
 For another language, pass custom `acoustic_model`, `dictionary` and `g2p`
 values to `SyllablesTranscriber`.
 
+### REST API
+
+An HTTP API (no authentication yet) queues songs and serves the finished
+charts. One song is processed at a time, in submission order; the queue is
+saved in `OUTPUT_DIR/.api` and resumes after a restart.
+
+```bash
+python -m src.api            # env: OUTPUT_DIR, API_HOST, API_PORT (8000), API_MAX_UPLOAD_MB (200)
+```
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/jobs` | multipart `file` (mp3, flac, wav, m4a, ogg, opus) + optional `artist`, `title`, `language`, `year`. Returns `202` and the job. Artist/title come from the form, else the file tags, else an `Artist - Title.mp3` file name (`422` if none) |
+| `GET` | `/jobs`, `/jobs/{id}` | job state: `status` (`queued`, `running`, `done`, `review`, `failed`, `cancelled`), current `stage`, `reason`, `chart_ready` |
+| `GET` | `/jobs/{id}/chart` | the UltraStar song folder as a zip (`done` and `review`; `409` before that) |
+| `DELETE` | `/jobs/{id}` | cancels a queued job, removes a finished one (`409` while running) |
+| `GET` | `/health` | liveness and queue size |
+
+```bash
+curl -F file=@"Beyoncé - Halo.mp3" -F language=en localhost:8000/jobs
+curl localhost:8000/jobs/<id>
+curl -o halo.zip localhost:8000/jobs/<id>/chart
+```
+
+Interactive docs at `/docs`. Status `review` still has a chart; the `reason`
+says what to check.
+
 ---
 
 ## Requirements

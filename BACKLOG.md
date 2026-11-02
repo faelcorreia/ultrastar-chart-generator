@@ -165,3 +165,10 @@ Decisões (refino, 2026-10-26): todas as fatias I6-I10, I13 refinadas pelo Rafae
 Decisão (I8, 2026-10-26): só Whisper medium (CPU int8); letra de entrada fortemente recomendada, com aviso.
 
 Decisão (I8): `WHISPER_MODEL = "medium"` (`src/core/whisper_model.py`) é o único modelo (transcrição, detecção de idioma, checagem de sílabas); `large-v3` removido do script/docs. Sem letra, o caminho Whisper agora avisa "providing the lyrics is STRONGLY RECOMMENDED" (motivo do relatório "revisar", nota do job, stderr da CLI) e acrescenta "low line coverage" ao motivo de revisão quando as linhas cobrem <25% da duração ou são <4. Medição (`compare_whisper_models.py`, mix completo, pt, WER vs LRCLIB, CPU int8): Tribalistas small 0,973 / medium 0,973 (37 s / 245 s); Jota Quest small 0,929 / medium 0,980 (43 s / 295 s). Ambos falham em canto (WER ~1, laços de repetição) e medium é 6-7x mais lento sem ganho aqui; o stem vocal do Jota Quest está mudo (-84 dB). Mantida a decisão do Rafael (medium); reavaliar se o custo pesar.
+
+## Épico J: API REST
+
+| ID | Fatia | Depende | Status |
+|---|---|---|---|
+| J1 | API REST sem auth: `POST /jobs` (mp3) enfileira, `GET /jobs/{id}` monitora, `GET /jobs/{id}/chart` baixa o zip. Fila de um worker, estado em `OUTPUT_DIR/.api` com retomada. Consumidor: karaoke-90 | I4 | Feito (commit pendente) |
+| J2 | Demais entradas pela API (letra pura/LRC, KAR, CDG+áudio, vídeo) e autenticação | J1 | A refinar |
