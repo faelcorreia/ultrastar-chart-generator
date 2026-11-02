@@ -19,7 +19,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from src.core.model_cache import release_all
 from src.model.song_job import SongJob
+from src.readers.cdg_text import SOURCE_FOREIGN, as_timing_guess
 from src.stages.cache import StageCache, fingerprint
 from src.stages.verify_lyrics import applies as checkable
 
@@ -96,11 +98,15 @@ def plan(job: SongJob) -> List[str]:
             steps.append(LANGUAGE)
         if job.vocals_path is None and VOCALS not in steps:
             steps.append(VOCALS)
-        if checkable(job) and job.sources.get("lyrics") != CDG:
+        origin = job.sources.get("lyrics")
+        if checkable(job) and origin != CDG:
             # I2: D4 then D5, before the lyrics are aligned. A CDG disc is
             # the authority on its own timing, so it is not re-checked
-            # against Whisper/CTC.
-            steps.append(RECONCILE)
+            # against Whisper/CTC. A CDG used with another version's audio
+            # (G5) has only a timing guess: its text is never corrected by
+            # Whisper (no RECONCILE) but the guess is fitted to the audio.
+            if origin != SOURCE_FOREIGN:
+                steps.append(RECONCILE)
             if job.lyrics.is_synced:
                 steps.append(SYNC_VALIDATE)
         if job.lyrics is None or not job.lyrics.has_syllable_timing:
@@ -167,6 +173,16 @@ def _adopt_awaiting(cache: StageCache, job: SongJob) -> None:
 def run_job(job: SongJob, output_dir, stages: Dict[str, Stage],
             force: bool = False, song_name: Optional[str] = None
             ) -> JobResult:
+    """`_run_job`, releasing the loaded models when the song is done."""
+    try:
+        return _run_job(job, output_dir, stages, force, song_name)
+    finally:
+        release_all()
+
+
+def _run_job(job: SongJob, output_dir, stages: Dict[str, Stage],
+             force: bool = False, song_name: Optional[str] = None
+             ) -> JobResult:
     """Plan and execute the stages for `job`, using the per-stage cache.
 
     `stages` maps stage name to ``func(job)``; a missing implementation fails
@@ -282,6 +298,12 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
         if not result.lyrics.lines:
             raise RuntimeError(
                 f"no lyric lines found in {Path(job.cdg_path).name}")
+        if job.extra.get("cdg_foreign_audio"):
+            job.lyrics = as_timing_guess(result.lyrics)
+            job.sources["lyrics"] = SOURCE_FOREIGN
+            job.note(f"CDG: {len(job.lyrics.lines)} lines, timing is only a "
+                     "guess (audio is another version)")
+            return
         job.lyrics = result.lyrics
         job.sources["lyrics"] = "cdg"
         job.note(f"CDG: {len(result.lyrics.lines)} timed lines")

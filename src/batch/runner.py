@@ -16,8 +16,8 @@ def run_batch(entries: List[ListEntry], audio_dir, output_dir,
               stages: Dict[str, Stage], library=None,
               force_existing: bool = False, force: bool = False,
               on_result: Optional[Callable[[ListEntry, JobResult], None]] = None,
-              report: Optional[BatchReport] = None, retry_all: bool = False
-              ) -> List[JobResult]:
+              report: Optional[BatchReport] = None, retry_all: bool = False,
+              foreign_audio: bool = False) -> List[JobResult]:
     """One JobResult per entry, in list order. Songs already in `library`
     get status "skipped" (unless `force_existing`). The language is the list
     value or None: the language stage resolves it, never a silent default.
@@ -44,6 +44,8 @@ def run_batch(entries: List[ListEntry], audio_dir, output_dir,
                       year=entry.year, language=entry.language,
                       audio_path=find_audio(audio, entry.artist, entry.title),
                       cdg_path=find_cdg(cdg, entry.artist, entry.title))
+        if foreign_audio:
+            job.extra["cdg_foreign_audio"] = True
         if key in existing:
             res = JobResult(SKIPPED, "already in library", job)
         else:

@@ -39,22 +39,11 @@ def split_words(text: str) -> List[str]:
 
 def ctc_window_aligner(audio_path: Path, words: List[str], language: str,
                        window: Window = None) -> Bounds:
-    """Default aligner: CTC on the whole file, or on a clip of the window."""
+    """Default aligner: CTC emissions of the whole file (computed once),
+    aligned on the span of the window."""
     from src.core import ctc_word_aligner
 
-    if window is None:
-        return ctc_word_aligner.align_words(audio_path, words, language)
-    start, end = window
-    with tempfile.TemporaryDirectory() as tmp:
-        clip = Path(tmp) / "clip.wav"
-        subprocess.run(
-            ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
-             "-ss", f"{start:.3f}", "-to", f"{end:.3f}",
-             "-i", str(audio_path), "-ar", "16000", "-ac", "1", str(clip)],
-            check=True,
-        )
-        bounds = ctc_word_aligner.align_words(clip, words, language)
-    return [(s + start, e + start) for s, e in bounds]
+    return ctc_word_aligner.align_words(audio_path, words, language, window)
 
 
 def pyphen_syllabifier(word: str, language: str) -> List[str]:

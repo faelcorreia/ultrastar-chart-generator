@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 import textgrid
+from src.core.model_cache import register_release
 from ctc_forced_aligner import (
     MODEL_URL,
     Tokenizer,
@@ -37,16 +38,58 @@ def _iso3(language: str) -> str:
     return _ISO3.get(base, base)
 
 
+_SESSIONS = {}
+_EMISSIONS = {}
+
+
+def release() -> None:
+    """Drop the ONNX session and the cached emissions."""
+    _SESSIONS.clear()
+    _EMISSIONS.clear()
+
+
+register_release(release)
+
+
+def _session(path: Path):
+    """One ONNX session per model file, kept until `release`."""
+    key = str(path)
+    if key not in _SESSIONS:
+        _SESSIONS[key] = onnxruntime.InferenceSession(key)
+    return _SESSIONS[key]
+
+
+def _emissions(audio_path: Path):
+    """Emissions of the whole file, computed once. The model pads every call
+    to a 30 s window, so running it per line clip cost a full pass each."""
+    p = Path(audio_path)
+    st = p.stat()
+    key = (str(p), st.st_mtime_ns, st.st_size)
+    if key not in _EMISSIONS:
+        while len(_EMISSIONS) >= 2:  # vocal stem + full mix at most
+            _EMISSIONS.pop(next(iter(_EMISSIONS)))
+        waveform = load_audio(str(p))
+        _EMISSIONS[key] = generate_emissions(
+            _session(_MODEL_PATH), waveform, batch_size=4)
+    return _EMISSIONS[key]
+
+
 def align_words(
-    audio_path: Path, words: list[str], language: str
+    audio_path: Path, words: list[str], language: str, window=None
 ) -> list[tuple[float, float]]:
-    """Return ``(start, end)`` in seconds for each word, in lyric order."""
+    """Return ``(start, end)`` in seconds for each word, in lyric order.
+    With ``window=(start, end)`` only that span of the audio is aligned and
+    the times stay absolute."""
     ensure_onnx_model(str(_MODEL_PATH), MODEL_URL)
-    session = onnxruntime.InferenceSession(str(_MODEL_PATH))
     tokenizer = Tokenizer()
 
-    waveform = load_audio(str(audio_path))
-    emissions, stride = generate_emissions(session, waveform, batch_size=4)
+    emissions, stride = _emissions(audio_path)
+    offset = 0.0
+    if window is not None:
+        first = max(int(window[0] * 1000 / stride), 0)
+        last = int(window[1] * 1000 / stride) + 1
+        emissions = emissions[first:last]
+        offset = first * stride / 1000
 
     tokens_starred, text_starred = preprocess_text(
         " ".join(words), romanize=True, language=_iso3(language),
@@ -68,7 +111,7 @@ def align_words(
         raise RuntimeError(
             f"CTC aligned {len(results)} word(s) for {len(words)} lyric word(s)"
         )
-    return [(r["start"], r["end"]) for r in results]
+    return [(r["start"] + offset, r["end"] + offset) for r in results]
 
 
 def to_textgrid(

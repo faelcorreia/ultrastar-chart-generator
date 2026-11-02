@@ -115,6 +115,8 @@ Decisões (F1): o áudio é localizado numa pasta indicada, casando `Artista - T
 
 Decisões (G5): CDG sem áudio fica na fila `awaiting_audio` (E1) e a letra é adotada quando o áudio chega, sem nova busca online nem Whisper para corrigir o texto. Não se assume que a versão real tem a mesma estrutura do MIDI. Em aberto (por isso A refinar): até que largura de janela o CTC alinha sem errar; medir com um CDG real antes de fechar o escopo.
 
+Protótipo G5 (2026-11-02, sem fatia fechada): `cdg_cli --foreign-audio` usa o CDG como texto e ordem das linhas; o planner pula o `reconcile`, roda `sync_validate` (offset/deriva) e `align_window`. Teste com 1 música (Backstreet Boys - Everybody, CDG [SC Karaoke] + áudio do YouTube de 3:51): deslocamento de ~10 s corrigido, 63% das linhas batem depois, 20% incertas (refrões repetidos), status review; resultado visto no Karaoke 90: ruim. Pendente: erros de OCR no texto (`WELI`, `AQUESTION`, `SEXUAIL`, `CAUSEWE`), escolha da variante de CDG, refrões. Junto: emissões CTC calculadas uma vez por arquivo e modelos liberados ao fim de cada música (`src/core/model_cache.py`).
+
 Decisões (G): G1 usa a melodia do MIDI quando existir, senão pitch tracking; G3 usa o parser dos comandos de realce do CDG para o tempo e OCR só para ler o texto; G4 fica por último.
 
 ## Épico H: Fontes e download

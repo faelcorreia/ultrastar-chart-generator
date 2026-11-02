@@ -57,6 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="process songs even if already in the library")
     p.add_argument("--force", action="store_true",
                    help="ignore the per-stage cache")
+    p.add_argument("--foreign-audio", action="store_true",
+                   help="the audio is another version than the disc's (e.g. "
+                        "from YouTube): the CDG gives text and line order, its "
+                        "timing is only a guess fitted to the audio (G5)")
     p.add_argument("--limit", type=int, default=None,
                    help="stop after N songs (useful for a first test)")
     p.add_argument("--report", default=None,
@@ -92,7 +96,8 @@ def main(argv: Optional[List[str]] = None) -> List[JobResult]:
     results = run_batch(entries, args.cdg_dir, args.output_dir, stages,
                         library=args.library,
                         force_existing=args.force_existing, force=args.force,
-                        on_result=show, report=report)
+                        on_result=show, report=report,
+                        foreign_audio=args.foreign_audio)
     print(report.summary([song_key(e.artist, e.title) for e in entries]),
           file=sys.stderr)
     return results

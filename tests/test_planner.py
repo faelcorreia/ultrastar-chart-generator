@@ -126,6 +126,17 @@ class PlannerTest(unittest.TestCase):
         job.sources["lyrics"] = "lrclib"
         self.assertIn("reconcile", plan(job))
 
+    def test_cdg_foreign_audio_fits_timing_but_never_reconciles_text(self):
+        job = SongJob(artist="A", title="T", audio_path=self.audio("en.mp3"))
+        job.lyrics = Lyrics(lines=[Line(text="hi", start=1.0)])
+        job.sources["lyrics"] = "cdg_foreign_audio"
+        job.lyrics.source = "cdg_foreign_audio"
+        steps = plan(job)
+        self.assertNotIn("reconcile", steps)
+        self.assertIn("sync_validate", steps)
+        self.assertLess(steps.index("sync_validate"),
+                        steps.index("align_window"))
+
     def test_full_run_done_then_cache_skips(self):
         for lang, (artist, title, line) in SONGS.items():
             out = self.tmp / lang
