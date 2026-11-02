@@ -3,14 +3,10 @@ import sys
 from pathlib import Path
 
 import src.core.config as config
-from src.core.vocals_separator import VocalsSeparator
-from src.core.ultrastar_formatter import UltraStarFormatter
-from src.core.beats_analyzer import BeatsAnalyzer
-from src.core.pitches_analyzer import PitchesAnalyzer
-from src.core.syllables_transcriber import SyllablesTranscriber
 from src.core.language import LanguageError, resolve_language
-from src.model.legacy import absorb, job_from_song, song_from_job
-from src.stages.cache import StageCache, fingerprint, run_stage
+from src.model.legacy import job_from_song
+from src.model.lyrics import Lyrics
+from src.planner import DONE, FAILED, default_stages, run_job
 
 
 # Input files follow the "Artist - Song Title - <suffix>.<ext>" convention.
@@ -104,8 +100,15 @@ def _collect_songs(input_dir: Path) -> dict:
     return valid_songs
 
 
-def _main() -> int:
-    input_dir = Path(config.INPUT_DIR)
+def _main(argv=None, input_dir=None, output_dir=None, stages=None) -> int:
+    """Run every collected song through the planner (K3).
+
+    `argv` defaults to the command line, `input_dir`/`output_dir` to the
+    configured folders and `stages` to ``default_stages(output_dir)``; the
+    last three exist so tests can inject fakes. Exit code 1 when a song fails.
+    """
+    input_dir = Path(input_dir or config.INPUT_DIR)
+    output_dir = Path(output_dir or config.OUTPUT_DIR)
     if not input_dir.is_dir():
         print(f"[ERROR] INPUT_DIR does not exist: {input_dir}")
         return 1
@@ -113,7 +116,7 @@ def _main() -> int:
     songs = _collect_songs(input_dir)
     # Optional arguments restrict the run to the named "Artist - Title" songs.
     # --force recomputes every stage instead of resuming from .work caches.
-    args = sys.argv[1:]
+    args = sys.argv[1:] if argv is None else list(argv)
     force = "--force" in args
     wanted = [arg for arg in args if arg != "--force"]
     if wanted:
@@ -131,70 +134,51 @@ def _main() -> int:
         return 1
 
     # Explicit language: list/filename, tags, then Whisper (flagged), else fail.
-    notes_by_song: dict[str, list[str]] = {}
-    for name in list(songs):
-        song = songs[name]
-        notes_by_song[name] = []
+    jobs = {}
+    for name, song in songs.items():
+        notes: list[str] = []
         try:
             song["language"] = resolve_language(
                 song.get("language"), song.get("full_track"),
-                notes=notes_by_song[name], label=f"'{name}'",
+                notes=notes, label=f"'{name}'",
             )
         except LanguageError as exc:
             print(f"[ERROR] {exc}")
             return 1
-
-    # Every song goes through a SongJob; the stages still get the dict view.
-    jobs = {name: job_from_song(song) for name, song in songs.items()}
-    for name, job in jobs.items():
-        job.notes.extend(notes_by_song[name])
-    songs = {name: song_from_job(job) for name, job in jobs.items()}
+        job = job_from_song(song)
+        job.notes.extend(notes)
+        # The lyrics are plain text here: the planner aligns them to the audio.
+        job.lyrics = Lyrics.from_text(
+            song["lyrics"].read_text(encoding="utf-8"),
+            language=job.language, source=str(song["lyrics"]))
+        jobs[name] = job
 
     print(f"Found {len(jobs)} song(s):")
-    for artist_song, job in jobs.items():
-        print(
-            f"  - {artist_song} [{job.language}] "
-            f"({job.artist} / {job.title})"
-        )
+    for name, job in jobs.items():
+        print(f"  - {name} [{job.language}] ({job.artist} / {job.title})")
         for note in job.notes:
             print(f"    [NOTE] {note}")
 
-    vocals = VocalsSeparator(songs)
-    pitches = PitchesAnalyzer(songs)
-    beats = BeatsAnalyzer(songs)
-    syllables = SyllablesTranscriber(songs)
-    ultrastar = UltraStarFormatter(songs)
+    if stages is None:
+        stages = default_stages(output_dir)
 
-    for artist_song, job in jobs.items():
-        print(f"\nAnalyzing {artist_song}")
-        song = songs[artist_song]
-        cache = StageCache(config.OUTPUT_DIR, artist_song, enabled=not force)
-        language = job.language
-        # Each key chains the previous one, so a changed input invalidates
-        # every later stage.
-        key = fingerprint(song["full_track"], language)
+    failed = []
+    for name, job in jobs.items():
+        print(f"\nAnalyzing {name}")
+        result = run_job(job, output_dir, stages, force=force, song_name=name)
+        if result.ran:
+            print(f"   ran: {', '.join(result.ran)}")
+        if result.cached:
+            print(f"   cached: {', '.join(result.cached)}")
+        print(f"=> {result.status}: {result.reason}")
+        if result.status == DONE:
+            print(f"   {job.extra.get('output_folder', output_dir / name)}")
+        elif result.status == FAILED:
+            failed.append(name)
 
-        def stage(name, message, func, *extra):
-            nonlocal key
-            key = fingerprint(key, name, *extra)
-            print(message)
-            if run_stage(cache, name, key, song, func):
-                print(f"   (cached: skipping {name})")
-            absorb(job, song)
-
-        stage("vocals", "=> Running Demucs to extract vocals from the original audio",
-              lambda: vocals.separate_vocals(artist_song=artist_song))
-        stage("pitches", "=> Running librosa to extract vocal pitches",
-              lambda: pitches.analyze_pitches(artist_song=artist_song))
-        stage("beats", "=> Running librosa to extract BPM from the original audio",
-              lambda: beats.analyze_beats(artist_song=artist_song))
-        stage("syllables", "=> Running MFA to timestamp syllables",
-              lambda: syllables.transcribe_vocals(artist_song),
-              song["lyrics"])
-
-        print("=> Creating UltraStar song folder")
-        ultrastar.format_ultrastar_song_folder(artist_song=artist_song)
-
+    if failed:
+        print(f"\n{len(failed)} song(s) failed: {', '.join(failed)}")
+        return 1
     return 0
 
 

@@ -267,11 +267,8 @@ ultrastar-chart-generator/
 ├── tests/          # Unit tests (no model downloads)
 └── src/
     └── core/
-        ├── beats_analyzer.py
-        ├── pitches_analyzer.py
         ├── syllables_transcriber.py
-        ├── ultrastar_formatter.py
-        └── vocals_separator.py
+        └── ultrastar_formatter.py
 ```
 
 ---

@@ -1,9 +1,8 @@
 """I1a: planner stages vocals, pitches and beats.
 
-Each stage adapts a legacy ``src.core`` analyzer (dict API) to
-``func(job) -> None``. The analyzers are imported lazily (demucs, torch and
-librosa are heavy) and the function that runs them is injectable, so tests
-use fakes. A runner has the signature ``runner(song, name, work_dir)`` where
+Each stage adapts a runner to ``func(job) -> None``. The runners (the
+almighty-listener adapters by default) are injectable, so tests use fakes.
+A runner has the signature ``runner(song, name, work_dir)`` where
 `song` is the legacy dict, `name` the "Artist - Title" label and `work_dir`
 the per-song ``.work`` folder; it returns the dict entries it produced.
 """
@@ -35,18 +34,6 @@ def _run_legacy(cls, method: str, keys, song, name, work) -> Dict[str, Any]:
     return {k: songs[name][k] for k in keys if k in songs[name]}
 
 
-def default_separate(song, name, work):
-    from src.core.vocals_separator import VocalsSeparator
-    return _run_legacy(VocalsSeparator, "separate_vocals",
-                       ("vocals", "instrumental"), song, name, work)
-
-
-def default_pitches(song, name, work):
-    from src.core.pitches_analyzer import PitchesAnalyzer
-    return _run_legacy(PitchesAnalyzer, "analyze_pitches", ("pitches",),
-                       song, name, work)
-
-
 def pitch_confidence(path) -> Optional[float]:
     """Share (0-100) of frames with a pitch the writer trusts, or None when
     the analysis has no confidence data."""
@@ -62,12 +49,6 @@ def pitch_confidence(path) -> Optional[float]:
     hits = sum(1 for p in probabilities
                if p is not None and p >= PITCH_CONFIDENCE_MIN)
     return 100.0 * hits / len(probabilities)
-
-
-def default_beats(song, name, work):
-    from src.core.beats_analyzer import BeatsAnalyzer
-    return _run_legacy(BeatsAnalyzer, "analyze_beats", ("beats",),
-                       song, name, work)
 
 
 def _make(output_dir, runner: Runner, required: Callable[[dict], None],
@@ -118,8 +99,7 @@ def make_stages(output_dir, separate: Optional[Runner] = None,
                 beats: Optional[Runner] = None) -> Dict[str, Callable]:
     """The vocals, pitches and beats stages for the planner.
 
-    Default runners are the almighty-listener adapters (K1); the legacy
-    analyzers stay importable until K3 removes them.
+    Default runners are the almighty-listener adapters (K1).
     """
     def beats_input(song):
         # Beats read the instrumental; without one (vocals supplied by the
