@@ -170,5 +170,5 @@ Decisão (I8): `WHISPER_MODEL = "medium"` (`src/core/whisper_model.py`) é o ún
 
 | ID | Fatia | Depende | Status |
 |---|---|---|---|
-| J1 | API REST sem auth: `POST /jobs` (mp3) enfileira, `GET /jobs/{id}` monitora, `GET /jobs/{id}/chart` baixa o zip. Fila de um worker, estado em `OUTPUT_DIR/.api` com retomada. Consumidor: karaoke-90 | I4 | Feito (commit pendente) |
+| J1 | API REST sem auth: `POST /jobs` (mp3) enfileira, `GET /jobs/{id}` monitora, `GET /jobs/{id}/chart` baixa o zip. Fila de um worker, estado em `OUTPUT_DIR/.api` com retomada. Consumidor: karaoke-90 | I4 | Feito (1eec661) |
 | J2 | Demais entradas pela API (letra pura/LRC, KAR, CDG+áudio, vídeo) e autenticação | J1 | A refinar |
