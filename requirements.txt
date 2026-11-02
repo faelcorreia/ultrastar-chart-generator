@@ -1,4 +1,4 @@
-almighty-listener[stems,pitch,beats,beats-nn,transcript,alignment] @ git+file:///mnt/Data/Codes/almighty-listener@v0.2.0
+almighty-listener[stems,pitch,beats,beats-nn,transcript,alignment] @ git+file:///mnt/Data/Codes/almighty-listener@v0.3.0
 annotated-doc==0.0.4
 antlr4-python3-runtime==4.9.3
 anyio==4.13.0
