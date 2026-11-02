@@ -326,13 +326,12 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
             label=f"'{job.artist} - {job.title}'")
 
     def align_window(job):
-        # I13: CTC on the full mix put words seconds off wherever the
-        # instruments masked the voice; the vocals stem keeps them on the audio.
-        voice = analysis_audio(job)
-        mix = Path(job.audio_path)
-        res = align_in_windows(job.lyrics, voice, job.require_language(),
-                               aligner=aligner or ctc_window_aligner,
-                               alt_audio_path=mix if voice != mix else None)
+        # K2b: the almighty separates the voice, aligns each line in its window
+        # and, with alt_audio (I13), keeps the mix pass when it starts closer.
+        from src.stages.audio_analysis import work_dir
+        res = align_in_windows(job.lyrics, job.audio_path,
+                               job.require_language(),
+                               work=work_dir(out, job))
         job.lyrics = res.lyrics
         if res.failed_lines:
             msg = f"alignment failed on lines {res.failed_lines}"

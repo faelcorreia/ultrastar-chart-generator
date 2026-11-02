@@ -48,9 +48,11 @@ def cache_dir_for(work: Path) -> Path:
 
 
 def _fetch(listen: Optional[ListenFn], audio: Path, want: Sequence[str],
-           artifacts: Sequence[str], name: str, work: Path, what: str) -> Dict[str, Path]:
+           artifacts: Sequence[str], name: str, work: Path, what: str,
+           options: Optional[Dict[str, Any]] = None) -> Dict[str, Path]:
     """Roda o almighty sobre `audio` e devolve o caminho de cada artefato pedido.
 
+    `options` (mapa estágio -> opções) vai para o `listen`; K2b usa para `transcript`.
     `listen` é lazy no pacote: a execução e os erros de estágio acontecem no `get`, por isso
     as duas chamadas ficam dentro do mesmo try.
     """
@@ -59,6 +61,7 @@ def _fetch(listen: Optional[ListenFn], audio: Path, want: Sequence[str],
         result = fn(
             audio,
             want=list(want),
+            options=options,
             cache_dir=cache_dir_for(work),
             work_dir=Path(work) / ".almighty",
         )

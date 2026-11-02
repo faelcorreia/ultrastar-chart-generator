@@ -1,15 +1,19 @@
-"""I13: word alignment runs on the separated vocals, not on the full mix."""
+"""I13 / K2b: a janela de cada linha é alinhada pelo almighty sobre o áudio completo (ele separa a
+voz e compara com o mix, alt_audio). O alinhamento de linhas sem tempo (plain) segue no vocal."""
 import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 os.environ.setdefault("INPUT_DIR", tempfile.gettempdir())
 os.environ.setdefault("OUTPUT_DIR", tempfile.gettempdir())
 
+from almighty_fake import FakeAlmighty  # noqa: E402
 from src.model.lyrics import Line, Lyrics  # noqa: E402
 from src.model.song_job import SongJob  # noqa: E402
 from src.planner import default_stages  # noqa: E402
+from src.stages import almighty_runners as ar  # noqa: E402
 from src.stages.verify_lyrics import analysis_audio  # noqa: E402
 
 LINES = {
@@ -50,36 +54,37 @@ class AlignmentAudioTest(unittest.TestCase):
                        vocals_path=self.voc if vocals else None,
                        lyrics=Lyrics(lines=lines, language=lang))
 
-    def test_window_alignment_uses_vocals(self):
+    def test_window_alignment_goes_through_almighty_on_full_track(self):
         for lang in LINES:
             with self.subTest(lang):
-                al = RecordingAligner()
-                stages = default_stages(self.tmp, aligner=al)
+                fake = FakeAlmighty(self.tmp)
+                stages = default_stages(self.tmp, aligner=RecordingAligner())
                 job = self.job(lang, synced=True)
-                stages["align_window"](job)
-                self.assertEqual(set(al.audio), {"vocals.mp3", "mix.mp3"})
-                self.assertEqual(al.audio[0], "vocals.mp3")
+                with mock.patch.object(ar, "_default_listen", return_value=fake):
+                    stages["align_window"](job)
+                call = fake.calls[0]
+                self.assertEqual(call["path"], self.mix)
+                self.assertEqual(call["want"], ["transcript", "alignment"])
+                self.assertTrue(call["options"]["transcript"]["alt_audio"])
+                self.assertEqual(call["work_dir"], self.tmp / "A - T" / ".work" / ".almighty")
                 self.assertTrue(job.lyrics.has_syllable_timing)
+                self.assertNotIn("review", job.extra)
 
-    def test_line_follows_the_pass_nearest_its_own_start(self):
-        """Whichever pass drifts from the line start loses (vocals lose a
-        soft onset, or the mix is masked by instruments)."""
-        from src.stages.window_alignment import align_in_windows
-        for lang in LINES:
-            for drifting in ("vocals.mp3", "mix.mp3"):
-                with self.subTest(lang=lang, drifting=drifting):
-                    def aligner(audio, words, language, window,
-                                drifting=drifting):
-                        shift = 1.5 if Path(audio).name == drifting else 0.0
-                        s = window[0] + shift
-                        return [(s + i * 0.2, s + i * 0.2 + 0.2)
-                                for i in range(len(words))]
-                    job = self.job(lang, synced=True)
-                    res = align_in_windows(
-                        job.lyrics, self.voc, aligner=aligner,
-                        alt_audio_path=self.mix, syllabifier=None)
-                    first = res.lyrics.lines[0].syllables[0].start
-                    self.assertAlmostEqual(first, 2.0)
+    def test_window_alignment_does_not_need_vocals(self):
+        fake = FakeAlmighty(self.tmp)
+        stages = default_stages(self.tmp)
+        job = self.job("pt", synced=True, vocals=False)
+        with mock.patch.object(ar, "_default_listen", return_value=fake):
+            stages["align_window"](job)
+        self.assertEqual(fake.calls[0]["path"], self.mix)
+
+    def test_failed_line_is_flagged_for_review(self):
+        fake = FakeAlmighty(self.tmp, fail_on=("Eu",))
+        stages = default_stages(self.tmp)
+        job = self.job("pt", synced=True)
+        with mock.patch.object(ar, "_default_listen", return_value=fake):
+            stages["align_window"](job)
+        self.assertEqual(job.extra["review"], "alignment failed on lines [0]")
 
     def test_plain_alignment_uses_vocals(self):
         for lang in LINES:
@@ -89,16 +94,6 @@ class AlignmentAudioTest(unittest.TestCase):
                 job = self.job(lang, synced=False)
                 stages["align_plain"](job)
                 self.assertEqual(set(al.audio), {"vocals.mp3"})
-
-    def test_falls_back_to_mix_without_vocals(self):
-        for lang in LINES:
-            with self.subTest(lang):
-                al = RecordingAligner()
-                stages = default_stages(self.tmp, aligner=al)
-                job = self.job(lang, synced=True, vocals=False)
-                stages["align_window"](job)
-                self.assertEqual(set(al.audio), {"mix.mp3"})
-                self.assertEqual(analysis_audio(job), self.mix)
 
     def test_missing_vocals_file_falls_back_to_mix(self):
         job = self.job("es", synced=True)
