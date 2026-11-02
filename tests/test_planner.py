@@ -106,6 +106,26 @@ class PlannerTest(unittest.TestCase):
         job = SongJob(artist="A", title="T")
         self.assertEqual(plan(job), ["metadata", "lyrics"])
 
+    def test_cdg_runs_before_lyrics_and_replaces_them(self):
+        cdg = self.tmp / "A - T.cdg"
+        cdg.write_bytes(b"x")
+        job = SongJob(artist="A", title="T", cdg_path=cdg)
+        self.assertEqual(plan(job)[0], "cdg")
+        job.lyrics = Lyrics(lines=[Line(text="hi", start=1.0)])
+        self.assertNotIn("lyrics", plan(job))
+        self.assertEqual(plan(job)[0], "metadata")
+
+    def test_cdg_timing_is_not_rechecked_with_whisper(self):
+        job = SongJob(artist="A", title="T", audio_path=self.audio("en.mp3"))
+        job.lyrics = Lyrics(lines=[Line(text="hi", start=1.0,
+                                        syllables=[Syllable("hi", 1.0, 1.5)])])
+        job.sources["lyrics"] = "cdg"
+        steps = plan(job)
+        self.assertNotIn("reconcile", steps)
+        self.assertNotIn("sync_validate", steps)
+        job.sources["lyrics"] = "lrclib"
+        self.assertIn("reconcile", plan(job))
+
     def test_full_run_done_then_cache_skips(self):
         for lang, (artist, title, line) in SONGS.items():
             out = self.tmp / lang

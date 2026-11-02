@@ -127,6 +127,87 @@ class CdgTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_cdg_zip(zp)
 
+    def test_zip_mp2_cdg(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            zp = Path(tmp) / "song.zip"
+            with zipfile.ZipFile(zp, "w") as zf:
+                zf.writestr("Song.mp2", b"mp2fake")
+                zf.writestr("Song.cdg", build_cdg(LINES))
+            out = Path(tmp) / "out"
+            res = read_cdg_zip(zp, out_dir=out)
+            self.assertEqual(res.audio_path, out / "Song.mp2")
+            self.assertEqual(res.audio_path.read_bytes(), b"mp2fake")
+
+    def test_text_drawn_with_xor_is_read(self):
+        # Real discs (HM, KaraokeMP3CDG) draw the line itself with XOR and
+        # repaint it to highlight; the old reader saw the draw as highlight
+        # and snapshotted a blank screen.
+        ocr = self.fake_ocr(["Hello big world", "Second line here"])
+        res = parse_cdg(build_xor_cdg(LINES), ocr=ocr)
+        self.assertEqual([line.text for line in res.lyrics.lines],
+                         ["Hello big world", "Second line here"])
+        first = res.lyrics.lines[0].syllables
+        self.assertAlmostEqual(first[0].start, 2.0, places=1)
+        self.assertAlmostEqual(first[1].start, 3.0, places=1)
+
+    def test_countdown_dashes_do_not_shift_first_word(self):
+        ocr = self.fake_ocr(["--- Word"])
+        res = parse_cdg(build_dash_cdg(), ocr=ocr)
+        self.assertEqual(len(res.lyrics.lines), 1)
+        line = res.lyrics.lines[0]
+        self.assertEqual(line.text, "Word")
+        self.assertAlmostEqual(line.start, 2.0, places=1)
+
+
+def build_xor_cdg(lines):
+    """Like build_cdg, but the text itself is drawn with XOR tiles."""
+    packets = [pkt(1, bytes([0])), clut()]
+    for row, words in lines:
+        for col, n, _ in words:
+            for k in range(n):
+                packets.append(tile(row, col + k, xor=True))
+    while len(packets) < 600:
+        packets.append(EMPTY)
+    events = []
+    for row, words in lines:
+        for col, n, sec in words:
+            for k in range(n):
+                events.append((sec + k * 0.1, row, col + k))
+    for sec, row, col in sorted(events):
+        idx = int(sec * 300)
+        while len(packets) < idx:
+            packets.append(EMPTY)
+        packets.append(tile(row, col, c0=0, c1=2, xor=True))
+    return b"".join(packets)
+
+
+def tile_rows(row, col, rows, c0=0, c1=1):
+    mask = bytes([0x3F if r in rows else 0 for r in range(12)])
+    return pkt(6, bytes([c0, c1, row, col]) + mask)
+
+
+def build_dash_cdg():
+    """A thin dash countdown before a real word; only the word gets timing."""
+    packets = [pkt(1, bytes([0])), clut()]
+    for col in range(2, 5):
+        packets.append(tile_rows(2, col, {5, 6}))
+    for col in range(8, 11):
+        packets.append(tile_rows(1, col, set(range(1, 11))))
+    while len(packets) < 600:
+        packets.append(EMPTY)
+
+    def put(sec, packet):
+        idx = int(sec * 300)
+        while len(packets) < idx:
+            packets.append(EMPTY)
+        packets.append(packet)
+
+    for k, col in enumerate(range(2, 5)):
+        put(1.0 + k * 0.1, tile(2, col, c0=0, c1=2, xor=True))
+    for k, col in enumerate(range(8, 11)):
+        put(2.0 + k * 0.1, tile(1, col, c0=0, c1=2, xor=True))
+    return b"".join(packets)
+
 
 if __name__ == "__main__":
     unittest.main()

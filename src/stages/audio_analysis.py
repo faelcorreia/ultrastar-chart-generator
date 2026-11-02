@@ -45,13 +45,31 @@ def default_pitches(song, name, work):
                        song, name, work)
 
 
+def pitch_confidence(path) -> Optional[float]:
+    """Share (0-100) of frames with a pitch the writer trusts, or None when
+    the analysis has no confidence data."""
+    import json
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    probabilities = data.get("voiced_prob")
+    if not probabilities:
+        return None
+    from src.writer.constants import PITCH_CONFIDENCE_MIN
+    hits = sum(1 for p in probabilities
+               if p is not None and p >= PITCH_CONFIDENCE_MIN)
+    return 100.0 * hits / len(probabilities)
+
+
 def default_beats(song, name, work):
     from src.core.beats_analyzer import BeatsAnalyzer
     return _run_legacy(BeatsAnalyzer, "analyze_beats", ("beats",),
                        song, name, work)
 
 
-def _make(output_dir, runner: Runner, required: Callable[[dict], None]):
+def _make(output_dir, runner: Runner, required: Callable[[dict], None],
+          after: Optional[Callable[[SongJob], None]] = None):
     def stage(job: SongJob) -> None:
         if job.audio_path is None:
             raise ValueError("no audio to analyze")
@@ -60,6 +78,8 @@ def _make(output_dir, runner: Runner, required: Callable[[dict], None]):
         song = song_from_job(job)
         required(song)
         absorb(job, runner(song, song_name(job), work))
+        if after is not None:
+            after(job)
     return stage
 
 
@@ -68,6 +88,27 @@ def _need(key: str, label: str):
         if key not in song:
             raise ValueError(f"{label} required but not available")
     return check
+
+
+# Below this share of confident frames the melody is not usable: the chart
+# keeps the lyrics timing but its notes are borrowed from neighbors. Karaoke
+# instrumentals separated by Demucs land near zero (the vocals stem is the
+# faint bleed).
+MIN_PITCH_CONFIDENCE_PCT = 5.0
+
+
+def _flag_no_melody(job: SongJob) -> None:
+    path = job.extra.get("pitches")
+    if path is None:
+        return
+    confidence = pitch_confidence(path)
+    if confidence is None or confidence >= MIN_PITCH_CONFIDENCE_PCT:
+        return
+    job.extra["pitch_confidence"] = round(confidence, 1)
+    reason = ("no melody found in the audio (vocals missing or too faint); "
+              "timing is kept, notes need a vocal recording")
+    previous = job.extra.get("review")
+    job.extra["review"] = f"{previous}; {reason}" if previous else reason
 
 
 def make_stages(output_dir, separate: Optional[Runner] = None,
@@ -83,6 +124,7 @@ def make_stages(output_dir, separate: Optional[Runner] = None,
         "vocals": _make(output_dir, separate or default_separate,
                         lambda s: None),
         "pitches": _make(output_dir, pitches or default_pitches,
-                         _need("vocals", "vocals track")),
+                         _need("vocals", "vocals track"),
+                         after=_flag_no_melody),
         "beats": _make(output_dir, beats or default_beats, beats_input),
     }

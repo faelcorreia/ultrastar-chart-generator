@@ -28,6 +28,7 @@ FAILED = "failed"
 REVIEW = "review"
 AWAITING_AUDIO = "awaiting_audio"
 
+CDG = "cdg"
 NORMALIZE, METADATA, LYRICS, LANGUAGE = "normalize", "metadata", "lyrics", "language"
 VOCALS, ALIGN, ALIGN_WINDOW, ALIGN_PLAIN = "vocals", "align", "align_window", "align_plain"
 PITCHES, BEATS, SYLLABLES, WRITE = "pitches", "beats", "syllables", "write"
@@ -76,6 +77,10 @@ def plan(job: SongJob) -> List[str]:
     done = set(_done(job))
     audio = has_audio(job)
     steps: List[str] = []
+    if job.cdg_path is not None and job.lyrics is None:
+        # A CDG disc carries the lyric timing; OCR reads the words. This runs
+        # before LYRICS so the online lookup/Whisper never overrides it.
+        steps.append(CDG)
     if audio and Path(job.audio_path).suffix.lower() != ".mp3":
         steps.append(NORMALIZE)
     if not (job.artist and job.title and job.year and job.cover_path):
@@ -91,8 +96,10 @@ def plan(job: SongJob) -> List[str]:
             steps.append(LANGUAGE)
         if job.vocals_path is None and VOCALS not in steps:
             steps.append(VOCALS)
-        if checkable(job):
-            # I2: D4 then D5, before the lyrics are aligned
+        if checkable(job) and job.sources.get("lyrics") != CDG:
+            # I2: D4 then D5, before the lyrics are aligned. A CDG disc is
+            # the authority on its own timing, so it is not re-checked
+            # against Whisper/CTC.
             steps.append(RECONCILE)
             if job.lyrics.is_synced:
                 steps.append(SYNC_VALIDATE)
@@ -115,8 +122,8 @@ def plan(job: SongJob) -> List[str]:
 
 # -- cache of job deltas ---------------------------------------------------
 _FIELDS = ("artist", "title", "year", "album", "language", "audio_path",
-           "vocals_path", "cover_path", "duration", "lyrics", "sources",
-           "notes", "extra")
+           "vocals_path", "cover_path", "cdg_path", "duration", "lyrics",
+           "sources", "notes", "extra")
 
 
 def _snapshot(job: SongJob) -> dict:
@@ -266,6 +273,19 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
         if musicbrainz is not None:
             musicbrainz.fill(job)
 
+    def cdg(job):
+        from src.readers.cdg import read_cdg
+        from src.readers.tesseract_ocr import make_ocr
+        language = job.language or "en"  # OCR code; None stays unknown
+        result = read_cdg(job.cdg_path, ocr=make_ocr(language),
+                          language=job.language)
+        if not result.lyrics.lines:
+            raise RuntimeError(
+                f"no lyric lines found in {Path(job.cdg_path).name}")
+        job.lyrics = result.lyrics
+        job.sources["lyrics"] = "cdg"
+        job.note(f"CDG: {len(result.lyrics.lines)} timed lines")
+
     def lyrics(job):
         if lrclib is None:
             raise RuntimeError("no LRCLIB client configured")
@@ -302,8 +322,8 @@ def default_stages(output_dir, lrclib=None, musicbrainz=None,
                                         job.require_language(),
                                         aligner=aligner or ctc_window_aligner)
 
-    stages = {NORMALIZE: normalize, METADATA: metadata, LYRICS: lyrics,
-              LANGUAGE: language, ALIGN_WINDOW: align_window,
+    stages = {CDG: cdg, NORMALIZE: normalize, METADATA: metadata,
+              LYRICS: lyrics, LANGUAGE: language, ALIGN_WINDOW: align_window,
               ALIGN_PLAIN: align_plain}
     stages.update(make_verify(transcriber, aligner))
     stages.update(make_stages(output_dir, separate, pitches, beats))

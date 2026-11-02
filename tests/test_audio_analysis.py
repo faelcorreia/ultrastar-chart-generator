@@ -93,6 +93,31 @@ class AudioAnalysisTest(unittest.TestCase):
         stages["beats"](job)
         self.assertEqual(calls[0][2], job.audio_path)
 
+    def _run_pitches(self, voiced_prob):
+        import json
+
+        def pitches(song, name, work):
+            p = work / f"{name} - pitches.json"
+            p.write_text(json.dumps({"voiced_prob": voiced_prob}),
+                         encoding="utf-8")
+            return {"pitches": p}
+
+        separate, _, beats = fake_runners([])
+        stages = aa.make_stages(self.tmp, separate, pitches, beats)
+        job = self.job("en", *SONGS["en"])
+        stages["vocals"](job)
+        stages["pitches"](job)
+        return job
+
+    def test_faint_vocals_flag_review(self):
+        job = self._run_pitches([0.0, 0.01, 0.0, 0.02])
+        self.assertIn("no melody", job.extra["review"])
+        self.assertEqual(job.extra["pitch_confidence"], 0.0)
+
+    def test_confident_vocals_do_not_flag(self):
+        job = self._run_pitches([0.5, 0.0, 0.4, 0.6])
+        self.assertNotIn("review", job.extra)
+
     def test_pitches_without_vocals_fails_clearly(self):
         stages = aa.make_stages(self.tmp, *fake_runners([]))
         job = self.job("pt", *SONGS["pt"])

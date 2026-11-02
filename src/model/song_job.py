@@ -22,6 +22,7 @@ class SongJob:
     audio_path: Optional[Path] = None
     vocals_path: Optional[Path] = None
     cover_path: Optional[Path] = None
+    cdg_path: Optional[Path] = None
     duration: Optional[float] = None
     lyrics: Optional[Lyrics] = None
     sources: Dict[str, str] = field(default_factory=dict)
@@ -29,7 +30,7 @@ class SongJob:
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        for name in ("audio_path", "vocals_path", "cover_path"):
+        for name in ("audio_path", "vocals_path", "cover_path", "cdg_path"):
             value = getattr(self, name)
             if value is not None and not isinstance(value, Path):
                 setattr(self, name, Path(value))

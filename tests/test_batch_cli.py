@@ -7,7 +7,8 @@ os.environ.setdefault("INPUT_DIR", tempfile.gettempdir())
 os.environ.setdefault("OUTPUT_DIR", tempfile.gettempdir())
 
 from src.batch.cli import main  # noqa: E402
-from src.batch.locate import index_audio, library_keys  # noqa: E402
+from src.batch.locate import (find_cdg, index_audio, index_cdg,  # noqa: E402
+                              library_keys)
 from src.batch.runner import SKIPPED, run_batch  # noqa: E402
 from src.batch.songlist import parse_song_list, song_key  # noqa: E402
 from src.model.lyrics import Line, Lyrics, Syllable  # noqa: E402
@@ -77,6 +78,36 @@ class BatchTest(unittest.TestCase):
         self.assertIn(song_key("João Gilberto", "Chega de Saudade"), idx)
         self.assertIn(song_key("Mägo de Oz", "La Danza del Fuego"), idx)
         self.assertEqual(len(idx), 4)
+
+    def test_cdg_folder_entries_strip_catalog_prefix(self):
+        from src.batch.cdg_cli import entries_from_cdg_folder
+        for name in ("SF337-01 - Saturdays - Not Giving Up.cdg",
+                     "SFWS072-01 - Elton John - Bennie & the Jets.cdg",
+                     "U2 - One.cdg", "AKB48 - Koi Suru Fortune Cookie.cdg"):
+            (self.audio / name).touch()
+        entries = entries_from_cdg_folder(self.audio)
+        self.assertEqual(
+            [(e.artist, e.title) for e in entries],
+            [("AKB48", "Koi Suru Fortune Cookie"),
+             ("Saturdays", "Not Giving Up"),
+             ("Elton John", "Bennie & the Jets"), ("U2", "One")])
+
+    def test_cdg_folder_entries_strip_label(self):
+        from src.batch.cdg_cli import entries_from_cdg_folder
+        (self.audio / "Van Morrison - Brown Eyed Girl [HM Karaoke].cdg").touch()
+        (self.audio / "not a pair.cdg").touch()
+        entries = entries_from_cdg_folder(self.audio)
+        self.assertEqual([(e.artist, e.title) for e in entries],
+                         [("Van Morrison", "Brown Eyed Girl")])
+
+    def test_cdg_pair_with_label_suffix_matches_clean_title(self):
+        (self.audio / "Van Morrison - Brown Eyed Girl [HM Karaoke].mp3").touch()
+        (self.audio / "Van Morrison - Brown Eyed Girl [HM Karaoke].cdg").touch()
+        idx = index_audio(self.audio)
+        self.assertEqual(
+            find_cdg(index_cdg(self.audio), "Van Morrison", "Brown Eyed Girl"),
+            self.audio / "Van Morrison - Brown Eyed Girl [HM Karaoke].cdg")
+        self.assertIn(song_key("Van Morrison", "Brown Eyed Girl"), idx)
 
     def test_run_skip_existing_and_force(self):
         for n in ("Beyoncé - Halo", "Niño Sueño - Año Nuevo"):

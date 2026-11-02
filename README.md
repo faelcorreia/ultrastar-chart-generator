@@ -90,6 +90,27 @@ curl -o halo.zip localhost:8000/jobs/<id>/chart
 Interactive docs at `/docs`. Status `review` still has a chart; the `reason`
 says what to check.
 
+### CDG + audio pairs (batch)
+
+A folder of `Artist - Song Title.cdg` + `Artist - Song Title.mp3` (or `.mp2`)
+pairs can be converted directly. The CDG disc already carries the lyric timing:
+the reader replays its highlight commands for the times and OCRs the drawn text
+for the words, so MFA/Whisper alignment is skipped for these songs.
+
+```bash
+python -m src.batch.cdg_cli --cdg-dir ./cdg --output-dir ./output --language en
+```
+
+`--language` is both the Tesseract traineddata and the song language; omit it
+to let the language stage resolve from the audio. Trailing karaoke labels in
+the file name (`[HM Karaoke]`, `(With Vocals)`) are ignored when matching the
+song list, and the output folder gets the clean title. `--limit N` converts a
+first handful for review.
+
+The CDG text recognition needs the Tesseract CLI and the language data
+(`tesseract-data-eng`, `tesseract-data-por`, ...). The CDG reader is also
+available to code as `src.readers.cdg.parse_cdg(data, ocr=...)`.
+
 ---
 
 ## Requirements
@@ -98,6 +119,7 @@ says what to check.
 - Python 3.10+
 - CUDA-capable GPU recommended (for Demucs)
 - `ffmpeg` installed and available in `PATH`
+- `tesseract` + `tesseract-data-<language>` for CDG input
 - Docker (optional, for containerized usage)
 
 Copy the example environment file and adjust the input and output directories:

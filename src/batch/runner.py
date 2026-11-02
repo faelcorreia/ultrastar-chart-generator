@@ -2,7 +2,8 @@
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from src.batch.locate import (find_audio, index_audio, library_keys)
+from src.batch.locate import (find_audio, find_cdg, index_audio, index_cdg,
+                              library_keys)
 from src.batch.report import BatchReport, now_iso
 from src.batch.songlist import ListEntry, song_key
 from src.model.song_job import SongJob
@@ -23,6 +24,7 @@ def run_batch(entries: List[ListEntry], audio_dir, output_dir,
     With a `report` (F2) every result is saved right away; entries already
     done/skipped in it are not reprocessed unless `retry_all`."""
     audio = index_audio(audio_dir) if audio_dir else {}
+    cdg = index_cdg(audio_dir) if audio_dir else {}
     existing = set() if force_existing else library_keys(library)
     results: List[JobResult] = []
     for entry in entries:
@@ -40,7 +42,8 @@ def run_batch(entries: List[ListEntry], audio_dir, output_dir,
         started = now_iso()
         job = SongJob(artist=entry.artist, title=entry.title,
                       year=entry.year, language=entry.language,
-                      audio_path=find_audio(audio, entry.artist, entry.title))
+                      audio_path=find_audio(audio, entry.artist, entry.title),
+                      cdg_path=find_cdg(cdg, entry.artist, entry.title))
         if key in existing:
             res = JobResult(SKIPPED, "already in library", job)
         else:
