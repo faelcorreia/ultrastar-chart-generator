@@ -4,12 +4,14 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 os.environ.setdefault("INPUT_DIR", tempfile.gettempdir())
 os.environ.setdefault("OUTPUT_DIR", tempfile.gettempdir())
 
 from app import _main, _parse_input_file  # noqa: E402
 from src import planner as P  # noqa: E402
+from src.model.lyrics import Line, Lyrics, Syllable  # noqa: E402
 
 SONGS = {
     "en": "The Beatles - Let It Be",
@@ -163,6 +165,37 @@ class MainPlannerTest(unittest.TestCase):
 
         self.run_main([], force=True)
         self.assertEqual(len(self.calls), first * 2)
+
+    def test_plain_lyrics_end_done_not_review_with_default_stages(self):
+        # K10: the real default_stages with a timed align_plain (as the real
+        # one leaves it) and a sync_validate that would flag review. The
+        # planner must not plan sync_validate for plain lyrics.
+        stages = self.stages()
+        plain = stages[P.ALIGN_PLAIN]
+
+        def timed_plain(job):
+            plain(job)
+            job.lyrics = Lyrics(lines=[
+                Line(text=line.text, start=float(i), syllables=[
+                    Syllable("a", float(i), i + 0.5)])
+                for i, line in enumerate(job.lyrics.lines)],
+                language=job.language)
+
+        def sync_validate(job):
+            self.calls.append((P.SYNC_VALIDATE, job.artist))
+            job.extra["review"] = "sync uncertain on 100% of lines"
+
+        stages[P.ALIGN_PLAIN] = timed_plain
+        stages[P.SYNC_VALIDATE] = sync_validate
+        out = io.StringIO()
+        with mock.patch("app.default_stages", return_value=stages), \
+                contextlib.redirect_stdout(out):
+            code = _main([], input_dir=self.input, output_dir=self.output)
+
+        self.assertEqual(code, 0, out.getvalue())
+        self.assertNotIn(P.SYNC_VALIDATE, [s for s, _ in self.calls])
+        self.assertEqual(out.getvalue().count("=> done: ok"), 3)
+        self.assertNotIn("=> review", out.getvalue())
 
 
 if __name__ == "__main__":

@@ -107,7 +107,10 @@ def plan(job: SongJob) -> List[str]:
             # Whisper (no RECONCILE) but the guess is fitted to the audio.
             if origin != SOURCE_FOREIGN:
                 steps.append(RECONCILE)
-            if job.lyrics.is_synced:
+            # K10: the timing align_plain gives comes from the same CTC that
+            # would check it, so only lyrics synced before alignment are
+            # validated (LRC/KAR/CDG); after align_plain they are not.
+            if job.lyrics.is_synced and ALIGN_PLAIN not in done:
                 steps.append(SYNC_VALIDATE)
         if job.lyrics is None or not job.lyrics.has_syllable_timing:
             steps.append(ALIGN)

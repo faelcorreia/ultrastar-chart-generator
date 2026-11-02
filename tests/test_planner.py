@@ -167,6 +167,59 @@ class PlannerTest(unittest.TestCase):
         self.assertIn("align_plain", fakes.calls)
         self.assertNotIn("align_window", fakes.calls)
 
+    def test_plain_lyrics_never_plan_sync_validate(self):
+        # K10: the timing align_plain gives is not checked by sync_validate
+        for lang, (artist, title, line) in SONGS.items():
+            job = SongJob(artist=artist, title=title, language=lang,
+                          audio_path=self.audio(f"{lang}.mp3"),
+                          lyrics=Lyrics.from_text(line, language=lang))
+            self.assertNotIn("sync_validate", plan(job), lang)
+            job.extra["done"] = ["reconcile"]
+            self.assertNotIn("sync_validate", plan(job), lang)
+            # after align_plain the lyrics are synced, yet still not validated
+            job.lyrics = Lyrics(lines=[Line(text=line, start=1.0,
+                                            syllables=[Syllable("a", 1.0,
+                                                                1.5)])],
+                                language=lang)
+            job.extra["done"] = ["reconcile", "align_plain"]
+            self.assertTrue(job.lyrics.is_synced)
+            self.assertNotIn("sync_validate", plan(job), lang)
+
+    def test_plain_lyrics_run_skips_sync_validate_after_align_plain(self):
+        for lang, (artist, title, line) in SONGS.items():
+            fakes = Fakes(self.tmp, lyrics=Lyrics.from_text(line,
+                                                            language=lang))
+            stages = fakes.stages()
+            plain = stages["align_plain"]
+
+            def timed_plain(job, plain=plain, lang=lang):
+                plain(job)
+                job.lyrics = Lyrics(lines=[
+                    Line(text=l.text, start=1.0, syllables=[
+                        Syllable("a", 1.0, 1.5)]) for l in job.lyrics.lines],
+                    language=lang)
+            stages["align_plain"] = timed_plain
+            job = SongJob(artist=artist, title=title, language=lang,
+                          audio_path=self.audio(f"{lang}.flac"))
+            res = run_job(job, self.tmp / lang, stages)
+            self.assertEqual((res.status, res.reason), (DONE, "ok"), lang)
+            self.assertIn("align_plain", fakes.calls, lang)
+            self.assertNotIn("sync_validate", fakes.calls, lang)
+
+    def test_synced_lrc_still_plans_reconcile_and_sync_validate(self):
+        for lang, (artist, title, line) in SONGS.items():
+            job = SongJob(artist=artist, title=title, language=lang,
+                          audio_path=self.audio(f"{lang}.mp3"),
+                          lyrics=Lyrics(lines=[Line(text=line, start=1.0)],
+                                        source="lrclib:1"))
+            steps = plan(job)
+            self.assertIn("reconcile", steps, lang)
+            self.assertIn("sync_validate", steps, lang)
+            self.assertLess(steps.index("reconcile"),
+                            steps.index("sync_validate"), lang)
+            self.assertLess(steps.index("sync_validate"),
+                            steps.index("align_window"), lang)
+
     def test_awaiting_audio_then_resume(self):
         for lang, (artist, title, line) in SONGS.items():
             out = self.tmp / lang
