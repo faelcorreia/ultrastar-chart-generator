@@ -12,6 +12,8 @@ from typing import Any, Callable, Dict, Optional
 
 from src.model.legacy import absorb, song_from_job
 from src.model.song_job import SongJob
+from src.stages.almighty_runners import (almighty_beats, almighty_pitches,
+                                         almighty_separate)
 
 Runner = Callable[[Dict[str, Any], str, Path], Dict[str, Any]]
 
@@ -114,17 +116,21 @@ def _flag_no_melody(job: SongJob) -> None:
 def make_stages(output_dir, separate: Optional[Runner] = None,
                 pitches: Optional[Runner] = None,
                 beats: Optional[Runner] = None) -> Dict[str, Callable]:
-    """The vocals, pitches and beats stages for the planner."""
+    """The vocals, pitches and beats stages for the planner.
+
+    Default runners are the almighty-listener adapters (K1); the legacy
+    analyzers stay importable until K3 removes them.
+    """
     def beats_input(song):
         # Beats read the instrumental; without one (vocals supplied by the
         # user) fall back to the full track.
         song.setdefault("instrumental", song["full_track"])
 
     return {
-        "vocals": _make(output_dir, separate or default_separate,
+        "vocals": _make(output_dir, separate or almighty_separate,
                         lambda s: None),
-        "pitches": _make(output_dir, pitches or default_pitches,
+        "pitches": _make(output_dir, pitches or almighty_pitches,
                          _need("vocals", "vocals track"),
                          after=_flag_no_melody),
-        "beats": _make(output_dir, beats or default_beats, beats_input),
+        "beats": _make(output_dir, beats or almighty_beats, beats_input),
     }
