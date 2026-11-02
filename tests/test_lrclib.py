@@ -88,6 +88,19 @@ class LrclibTest(unittest.TestCase):
                                 rec(2, "a", "b", 200)])
         self.assertIsNone(LrclibClient(http).find("a", "b", duration=200))
 
+    def test_get_misses_but_search_within_tolerance_k9(self):
+        # K9: /api/get com duração não acha; a busca acha e a tolerância é local
+        cases = {"en": ("Journey", "Faithfully", 252.8, 250),
+                 "pt": ("Lô Borges", "Um Girassol Da Cor Do Seu Cabelo", 252.8, 250),
+                 "es": ("Maná", "Rayando el Sol", 252.8, 250)}
+        for lang, (artist, title, audio, lrc) in cases.items():
+            with self.subTest(lang):
+                http = FakeHttp(search=[rec(1, artist, title, lrc, SYNCED)])
+                result = LrclibClient(http).find(artist, title, duration=audio)
+                self.assertEqual(result.id, 1)
+                far = FakeHttp(search=[rec(2, artist, title, 323, SYNCED)])
+                self.assertIsNone(LrclibClient(far).find(artist, title, duration=205))
+
     def test_no_duration_accepts_any(self):
         http = FakeHttp(get=rec(1, "a", "b", 999, SYNCED))
         self.assertIsNotNone(LrclibClient(http).find("a", "b"))
