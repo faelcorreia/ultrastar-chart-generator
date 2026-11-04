@@ -226,3 +226,4 @@ output/*
 
 # Local environment (use .env.example as a template)
 .env
+/BACKLOG.md
