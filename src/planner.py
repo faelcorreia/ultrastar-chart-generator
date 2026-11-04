@@ -103,7 +103,7 @@ def plan(job: SongJob) -> List[str]:
             # I2: D4 then D5, before the lyrics are aligned. A CDG disc is
             # the authority on its own timing, so it is not re-checked
             # against Whisper/CTC. A CDG used with another version's audio
-            # (G5) has only a timing guess: its text is never corrected by
+            # (cdg_adapt) has only a timing guess: its text is never corrected by
             # Whisper (no RECONCILE) but the guess is fitted to the audio.
             if origin != SOURCE_FOREIGN:
                 steps.append(RECONCILE)

@@ -60,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--foreign-audio", action="store_true",
                    help="the audio is another version than the disc's (e.g. "
                         "from YouTube): the CDG gives text and line order, its "
-                        "timing is only a guess fitted to the audio (G5)")
+                        "timing is only a guess fitted to the audio (cdg_adapt)")
     p.add_argument("--limit", type=int, default=None,
                    help="stop after N songs (useful for a first test)")
     p.add_argument("--report", default=None,

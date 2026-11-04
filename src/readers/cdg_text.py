@@ -1,4 +1,4 @@
-"""G5: clean OCR noise in CDG lyric text and turn a CDG into a timing guess.
+"""cdg_adapt: clean OCR noise in CDG lyric text and turn a CDG into a timing guess.
 
 The CDG text is trusted blindly otherwise, so only unambiguous OCR slips are
 fixed here (a lone ``|`` is an ``I``; a line without letters is not a lyric).
