@@ -6,7 +6,7 @@ from src.model import SongJob
 from src.providers.http import HttpResponse
 from src.providers.musicbrainz import MusicBrainzClient
 
-UA = "UltraStarSongCreator/0.1 (test@example.com)"
+UA = "UltraStarChartGenerator/0.1 (test@example.com)"
 
 
 def recording(score=100, date="1981-10-01", rid="rel-1", title="Escape"):

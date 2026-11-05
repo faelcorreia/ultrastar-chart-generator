@@ -13,7 +13,7 @@ from src.providers.name_clean import lookup_variants
 
 BASE_URL = "https://lrclib.net"
 DURATION_TOLERANCE = 3.0
-USER_AGENT = "UltraStarSongCreator/0.1 (https://github.com/ultrastar-song-creator)"
+USER_AGENT = "UltraStarChartGenerator/0.1 (https://github.com/faelcorreia/ultrastar-chart-generator)"
 _LRC_TIME = re.compile(r"\[(\d+):(\d+(?:\.\d+)?)\]")
 
 

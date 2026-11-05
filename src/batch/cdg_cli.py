@@ -85,7 +85,7 @@ def main(argv: Optional[List[str]] = None) -> List[JobResult]:
         args.output_dir,
         lrclib=LrclibClient(cache_dir=cache / "lrclib"),
         musicbrainz=MusicBrainzClient(
-            "ultrastar-song-creator/0.1 (CDG CLI)",
+            "ultrastar-chart-generator/0.1 (CDG CLI)",
             cover_dir=cache / "covers"))
 
     def show(entry, res):

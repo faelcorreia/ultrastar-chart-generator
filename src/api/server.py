@@ -76,7 +76,7 @@ def create_app(output_dir=None, stages: Optional[Dict[str, Stage]] = None,
                     out,
                     lrclib=LrclibClient(cache_dir=out / ".cache" / "lrclib"),
                     musicbrainz=MusicBrainzClient(
-                        "ultrastar-song-creator/0.1 (REST API)",
+                        "ultrastar-chart-generator/0.1 (REST API)",
                         cover_dir=out / ".cache" / "covers"))
             kwargs = {"runner": runner} if runner else {}
             holder["worker"] = Worker(store, out, real, **kwargs)

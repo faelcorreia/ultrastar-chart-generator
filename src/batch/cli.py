@@ -41,7 +41,7 @@ def main(argv: Optional[List[str]] = None,
         lrclib = LrclibClient(
             cache_dir=Path(args.output_dir) / ".cache" / "lrclib")
         musicbrainz = MusicBrainzClient(
-            "ultrastar-song-creator/0.1 (batch CLI)",
+            "ultrastar-chart-generator/0.1 (batch CLI)",
             cover_dir=Path(args.output_dir) / ".cache" / "covers")
         stages = default_stages(args.output_dir, lrclib=lrclib,
                                 musicbrainz=musicbrainz)
